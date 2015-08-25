@@ -461,7 +461,7 @@ namespace Arch.CMessaging.Client.Producer.Sender
                     catch (Exception ex)
                     {
                         sender.Log.Error(ex);
-                        future.Cancel(true);
+                        sender.SendMessageAcceptanceMonitor.Cancel(command.Header.CorrelationId);
                     }
                 }
                 else
