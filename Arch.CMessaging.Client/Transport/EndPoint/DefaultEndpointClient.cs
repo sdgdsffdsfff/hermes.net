@@ -41,6 +41,7 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
         private object syncRoot = new object();
         private ConcurrentDictionary<Endpoint, EndpointSession> sessions;
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultEndpointClient));
+        private ThreadSafe.Long lastLogTime = new ThreadSafe.Long(0);
 
         public DefaultEndpointClient()
         {
@@ -130,7 +131,10 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
                         }
                     }
                     else
+                    {
+                        Log.Info(String.Format("Connected to broker {0}", connectFuture.Session.RemoteEndPoint.ToString()));
                         endpointSession.SetSessionFuture(connectFuture);
+                    }
                 }
                 else
                 {
@@ -170,14 +174,14 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
         private Bootstrap CreateBootstrap(Endpoint endpoint, EndpointSession endpointSession)
         {
             return new Bootstrap()
-                    .Option(SessionOption.SO_KEEPALIVE, true)
-                    .Option(SessionOption.CONNECT_TIMEOUT_MILLIS, 5000)
-                    .Option(SessionOption.TCP_NODELAY, true)
-                    .Option(SessionOption.SO_SNDBUF, config.SendBufferSize)
-                    .Option(SessionOption.SO_RCVBUF, config.ReceiveBufferSize)
-                    .Option(SessionOption.BOTH_IDLE_TIME, config.EndpointSessionMaxIdleTime)
-                    .OnSessionDestroyed((session) => this.RemoveSession(endpoint, endpointSession))
-                    .Handler(chain =>
+                .Option(SessionOption.SO_KEEPALIVE, true)
+                .Option(SessionOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .Option(SessionOption.TCP_NODELAY, true)
+                .Option(SessionOption.SO_SNDBUF, config.SendBufferSize)
+                .Option(SessionOption.SO_RCVBUF, config.ReceiveBufferSize)
+                .Option(SessionOption.ANY_IDLE_TIME, config.EndpointSessionMaxIdleTime)
+                .OnSessionDestroyed((session) => this.RemoveSession(endpoint, endpointSession))
+                .Handler(chain =>
                 {
                     chain.AddLast(
                         new ExceptionHandler(),
@@ -185,19 +189,54 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
                         new LengthFieldPrepender(4),
                         new ProtocolCodecFilter(new CommandCodecFactory()));
                 })
-                    .Handler(new DefaultClientChannelInboundHandler(commandProcessorManager, endpoint, endpointSession, this, config));
+                .Handler(new DefaultClientChannelInboundHandler(commandProcessorManager, endpoint, endpointSession, this, config));
         }
 
         private void EndpointSessionFlush(object state)
         {
             timer.Change(Timeout.Infinite, Timeout.Infinite);
+
+            long now = new DateTime().CurrentTimeMillis();
+            bool writeLog = false;
+            StringBuilder sb = null;
+            if (now - lastLogTime.ReadFullFence() >= 60000)
+            {
+                lastLogTime.WriteFullFence(now);
+                writeLog = true;
+                sb = new StringBuilder();
+            }
+
             bool flushed = false;
             try
             {
-                foreach (var session in sessions.Values)
+                foreach (var pair in sessions)
                 {
+                    var endpoint = pair.Key;
+                    var session = pair.Value;
+
+                    if (writeLog && sb != null)
+                    {
+                        sb.Append("endpoint: ");
+                        sb.Append(endpoint.Host);
+                        sb.Append(", session.IsClosed: ");
+                        sb.Append(session.IsClosed);
+                    }
+
                     if (!session.IsClosed)
-                        flushed = flushed || session.Flush();
+                    {
+                        bool thisSessionFlushed = session.Flush();
+                        flushed = flushed || thisSessionFlushed;
+
+                        if (writeLog && sb != null)
+                        {
+                            sb.Append(", Flushed: ");
+                            sb.Append(thisSessionFlushed);
+                        }
+                    }
+                    if (writeLog && sb != null)
+                    {
+                        sb.AppendLine();
+                    }
                 }
             }
             catch (Exception ex)
@@ -206,6 +245,11 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
             }
             finally
             {
+                if (writeLog && sb != null)
+                {
+                    log.Info("EndpointSessionFlush", sb.ToString());
+                }
+
                 int delay;
                 if (flushed)
                 {
