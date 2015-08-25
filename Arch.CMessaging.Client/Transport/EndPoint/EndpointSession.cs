@@ -8,6 +8,8 @@ using Arch.CMessaging.Client.Core.Utils;
 using Arch.CMessaging.Client.Net.Core.Future;
 using Arch.CMessaging.Client.Net.Core.Session;
 using Arch.CMessaging.Client.Transport.Command;
+using Com.Dianping.Cat;
+using System.Diagnostics;
 
 namespace Arch.CMessaging.Client.Transport.EndPoint
 {
@@ -19,7 +21,9 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
         private ThreadSafe.Boolean closed;
         private ThreadSafe.AtomicReference<WriteOp> flushingOp;
         private ThreadSafe.AtomicReference<IConnectFuture> sessionFuture;
-        
+        private ThreadSafe.Long flushCounter = new ThreadSafe.Long(0);
+        private ThreadSafe.Long lastLogTime = new ThreadSafe.Long(0);
+
         public EndpointSession(DefaultEndpointClient client)
         {
             this.client = client;
@@ -33,17 +37,22 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
 
         public void SetSessionFuture(IConnectFuture future)
         {
-            if (!IsClosed) sessionFuture.WriteFullFence(future);
+            if (!IsClosed)
+                sessionFuture.WriteFullFence(future);
         }
 
         public void Write(ICommand command, int timeoutInMills)
         {
-            if (!IsClosed && !opQueue.Offer(new WriteOp(command, timeoutInMills, client)))
+            if (!IsClosed)
             {
-                var future = sessionFuture.ReadFullFence();
-                IoSession session = null;
-                if (future != null) session = future.Session;
-                client.Log.Warn(string.Format("Send buffer of endpoint channel {0} is full", session == null ? "null" : session.RemoteEndPoint.ToString()));
+                if (!opQueue.Offer(new WriteOp(command, timeoutInMills, client)))
+                {
+                    var future = sessionFuture.ReadFullFence();
+                    IoSession session = null;
+                    if (future != null)
+                        session = future.Session;
+                    client.Log.Warn(string.Format("Send buffer of endpoint channel {0} is full", session == null ? "null" : session.RemoteEndPoint.ToString()));
+                }
             }
         }
 
@@ -51,6 +60,7 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
         {
             if (!IsClosed)
             {
+                PopExpiredOps();
                 var future = sessionFuture.ReadFullFence();
                 if (future != null)
                 {
@@ -74,6 +84,21 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
             return false;
         }
 
+        private void PopExpiredOps()
+        {
+            while (opQueue.Count > 0)
+            {
+                if (opQueue.Peek().IsExpired)
+                {
+                    opQueue.Take();
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
         public bool HasUnflushOps { get { return opQueue.Count != 0 || flushingOp.ReadFullFence() != null; } }
 
         public bool IsFlushing { get { return flushing.ReadFullFence(); } }
@@ -85,7 +110,8 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
             if (closed.AtomicCompareExchange(true, false))
             {
                 var future = sessionFuture.ReadFullFence();
-                if (future != null) future.Session.Close(true);
+                if (future != null)
+                    future.Session.Close(true);
             }
         }
 
@@ -95,23 +121,32 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
             {
                 try
                 {
+                    long cnt = flushCounter.AtomicIncrementAndGet();
+                    long now = new DateTime().CurrentTimeMillis();
+                    if (now - lastLogTime.ReadFullFence() > 60000)
+                    {
+                        lastLogTime.WriteFullFence(now);
+                        string log = String.Format("opQueueSize: {0}, session: {1}, couner: {2}", opQueue.Count, session.RemoteEndPoint.ToString(), cnt);
+                        client.Log.Info(log);
+                    }
+
                     var writeFuture = session.Write(op.Command);
                     writeFuture.Complete += (s, e) =>
+                    {
+                        if (e.Future.Done)
                         {
-                            if (e.Future.Done)
+                            flushing.AtomicExchange(false);
+                            flushingOp.AtomicExchange(null);
+                        }
+                        else
+                        {
+                            if (!IsClosed)
                             {
-                                flushing.AtomicExchange(false);
-                                flushingOp.AtomicExchange(null);
+                                Thread.Sleep(client.Config.EndpointSessionWriteRetryDealyInMills);
+                                DoFlush(e.Future.Session, op);
                             }
-                            else
-                            {
-                                if (!IsClosed)
-                                {
-                                    Thread.Sleep(client.Config.EndpointSessionWriteRetryDealyInMills);
-                                    DoFlush(e.Future.Session, op);
-                                }
-                            }
-                        };
+                        }
+                    };
                 }
                 catch (Exception ex)
                 {
@@ -132,6 +167,7 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
             private ICommand command;
             private long expireTime;
             private DefaultEndpointClient client;
+
             public WriteOp(ICommand command, int timeoutInMills, DefaultEndpointClient client)
             {
                 this.client = client;
@@ -140,6 +176,7 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
             }
 
             public ICommand Command { get { return command; } }
+
             public bool IsExpired { get { return expireTime < client.ClockService.Now(); } }
         }
     }
