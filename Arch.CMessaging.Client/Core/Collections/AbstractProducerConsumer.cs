@@ -22,7 +22,6 @@ namespace Arch.CMessaging.Client.Core.Collections
             this.semaphore = new SemaphoreSlim(maxConsumerCount, maxConsumerCount);
             pollingThread = new Thread(InfinitePolling);
             pollingThread.IsBackground = true;
-            pollingThread.Start();
         }
 
         public bool Produce(TItem item)
@@ -41,24 +40,28 @@ namespace Arch.CMessaging.Client.Core.Collections
                     if (item != null)
                     {
                         ThreadPool.QueueUserWorkItem((state) =>
-                        {
-                            var consumingItem = state as IConsumingItem;
-                            try
                             {
-                                if (OnConsume != null)
-                                    OnConsume(this, new ConsumeEventArgs(consumingItem));
-                            }
-                            catch (Exception ex)
-                            {
-                                log.Error(ex);
-                            }
-                            finally
-                            {
-                                semaphore.Release();
-                            }
-                        }, item);
+                                var consumingItem = state as IConsumingItem;
+                                try
+                                {
+                                    if (OnConsume != null)
+                                        OnConsume(this, new ConsumeEventArgs(consumingItem));
+                                }
+                                catch (Exception ex)
+                                {
+                                    log.Error(ex);
+                                }
+                                finally
+                                {
+                                    semaphore.Release();
+                                }
+                            }, item);
                     }
                     else semaphore.Release();
+                }
+                catch (ThreadAbortException)
+                {
+                    semaphore.Dispose();
                 }
                 catch (Exception)
                 {
@@ -68,9 +71,14 @@ namespace Arch.CMessaging.Client.Core.Collections
         }
 
         public event EventHandler<ConsumeEventArgs> OnConsume;
-        public void Shutdown ()
+        public void Shutdown()
         {
-            // TODO shut down
+            pollingThread.Abort();   
+        }
+
+        protected void StartPolling()
+        {
+            pollingThread.Start();
         }
         protected abstract TQueue BlockingQueue { get; }
         protected abstract IConsumingItem TakeConsumingItem();
