@@ -6,7 +6,7 @@ namespace Arch.CMessaging.Client.Net.Core.Write
 {
     class DefaultWriteRequestQueue : IWriteRequestQueue
     {
-        private ConcurrentQueue<IWriteRequest> q = new ConcurrentQueue<IWriteRequest>();
+        private ConcurrentQueue<ItemWrapper<IWriteRequest>> q = new ConcurrentQueue<ItemWrapper<IWriteRequest>>();
 
         public Int32 Size
         {
@@ -15,14 +15,19 @@ namespace Arch.CMessaging.Client.Net.Core.Write
 
         public IWriteRequest Poll(IoSession session)
         {
-            IWriteRequest request;
-            q.TryDequeue(out request);
+            IWriteRequest request = null;
+            ItemWrapper<IWriteRequest> item;
+            if (q.TryDequeue(out item))
+            {
+                request = item.Value;
+                item.Value = null;
+            }
             return request;
         }
 
         public void Offer(IoSession session, IWriteRequest writeRequest)
         {
-            q.Enqueue(writeRequest);
+            q.Enqueue(new ItemWrapper<IWriteRequest> { Value = writeRequest });
         }
 
         public Boolean IsEmpty(IoSession session)
@@ -32,12 +37,17 @@ namespace Arch.CMessaging.Client.Net.Core.Write
 
         public void Clear(IoSession session)
         {
-            q = new ConcurrentQueue<IWriteRequest>();
+            q = new ConcurrentQueue<ItemWrapper<IWriteRequest>>();
         }
 
         public void Dispose(IoSession session)
         {
             // Do nothing
+        }
+
+        private struct ItemWrapper<T>
+        {
+            public T Value { get; set; }
         }
     }
 }
