@@ -14,9 +14,9 @@ namespace Arch.CMessaging.Client.Core.Config
 
 		public int MetaServerIpFetchInterval { get { return 10; } }
 
-		public int MetaServerConnectTimeoutInMills { get { return 2000; } }
+		public int MetaServerConnectTimeoutInMills { get { return 1000; } }
 
-		public int MetaServerReadTimeoutInMills { get { return 5000; } }
+		public int MetaServerReadTimeoutInMills { get { return 2000; } }
 
 		public long RunningStatusStatInterval { get { return 30; } }
 

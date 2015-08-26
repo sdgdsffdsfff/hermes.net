@@ -16,6 +16,13 @@ namespace Arch.CMessaging.Client.Core.Collections
             base.StartPolling();
         }
 
+        public ProducerConsumer(BlockingQueue<TItem> blockingQueue, int maxConsumerCount)
+            : base(maxConsumerCount)
+        {
+            this.blockingQueue = blockingQueue;
+            base.StartPolling();
+        }
+
         protected override BlockingQueue<TItem> BlockingQueue
         {
             get { return blockingQueue; }

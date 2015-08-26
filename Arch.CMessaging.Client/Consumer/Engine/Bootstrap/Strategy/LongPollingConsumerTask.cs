@@ -51,8 +51,6 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 
         private int cacheSize;
 
-        private int localCachePrefetchThreshold;
-
         private ConsumerContext Context;
 
         private int PartitionId;
@@ -67,13 +65,12 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 
         private ThreadSafe.Integer scheduleKey = new ThreadSafe.Integer(0);
 
-        public LongPollingConsumerTask(ConsumerContext context, int partitionId, int cacheSize, int prefetchThreshold,
+        public LongPollingConsumerTask(ConsumerContext context, int partitionId, int cacheSize,
                                        IRetryPolicy retryPolicy)
         {
             Context = context;
             PartitionId = partitionId;
             this.cacheSize = cacheSize;
-            this.localCachePrefetchThreshold = prefetchThreshold;
             msgs = new BlockingQueue<IConsumerMessage>(cacheSize);
             this.retryPolicy = retryPolicy;
 
@@ -164,7 +161,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
                         break;
                     }
 
-                    if (msgs.Count <= localCachePrefetchThreshold)
+                    if (msgs.Count == 0)
                     {
                         SchedulePullMessagesTask(correlationId);
                     }
@@ -357,7 +354,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
         {
             try
             {
-                if (IsClosed() || msgs.Count > localCachePrefetchThreshold)
+                if (IsClosed() || msgs.Count > 0)
                 {
                     return;
                 }

@@ -8,7 +8,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Config
     {
         public String DefautlLocalCacheSize
         { 
-            get { return "200"; }
+            get { return "10"; }
         }
 
         public long RenewLeaseTimeMillisBeforeExpired
@@ -29,11 +29,6 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Config
         public long DefaultLeaseRenewDelayMillis
         { 
             get { return 500L; }
-        }
-
-        public String DefaultLocalCachePrefetchThresholdPercentage
-        { 
-            get { return "30"; }
         }
 
         public int NoMessageWaitIntervalMillis

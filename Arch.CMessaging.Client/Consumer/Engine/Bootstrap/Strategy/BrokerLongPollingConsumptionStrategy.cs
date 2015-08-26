@@ -56,17 +56,11 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
                 int localCacheSize = Convert.ToInt32(ClientEnv.GetConsumerConfig(context.Topic.Name).GetProperty(
                                              "consumer.localcache.size", Config.DefautlLocalCacheSize));
 
-                int prefetchThreshold = (int)(localCacheSize
-                                        * Convert.ToDouble(ClientEnv.GetConsumerConfig(context.Topic.Name).GetProperty(
-                                                "consumer.localcache.prefetch.threshold.percentage",
-                                                Config.DefaultLocalCachePrefetchThresholdPercentage)) / 100d);
-
                 IRetryPolicy retryPolicy = metaService.FindRetryPolicyByTopicAndGroup(context.Topic.Name, context.GroupId);
                 LongPollingConsumerTask consumerTask = new LongPollingConsumerTask(//
                                                            context, //
                                                            partitionId,//
                                                            localCacheSize, //
-                                                           prefetchThreshold,//
                                                            retryPolicy);
 
                 consumerTask.EndpointClient = EndpointClient;

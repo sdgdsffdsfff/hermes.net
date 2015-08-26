@@ -40,7 +40,10 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
             {
                 int threadCount = Convert.ToInt32(clientEnv.GetConsumerConfig(context.Topic.Name).GetProperty(
                                           "consumer.notifier.threadcount", config.DefaultNotifierThreadCount));
-                ProducerConsumer<Action> threadPool = new ProducerConsumer<Action>(int.MaxValue, threadCount);
+
+                BlockingQueue<Action> blockingQueue = new TransferBlockingQueue<Action>(threadCount);
+                ProducerConsumer<Action> threadPool = new ProducerConsumer<Action>(blockingQueue, threadCount);
+
                 threadPool.OnConsume += DispatchMessages;
 
                 var pair = new Pair<ConsumerContext, ProducerConsumer<Action>>(context, threadPool);
@@ -103,6 +106,20 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
             Pair<ConsumerContext, ProducerConsumer<Action>> pair = null;
             consumerContexs.TryGetValue(correlationId, out pair);
             return pair == null ? null : pair.Key;
+        }
+    }
+
+    public class TransferBlockingQueue<TItem> : BlockingQueue<TItem>
+    {
+        public TransferBlockingQueue(int capacity)
+            : base(capacity)
+        {
+        }
+
+        public override bool Offer(TItem item)
+        {
+            // -1 means not timeout
+            return Put(item, -1);
         }
     }
 }

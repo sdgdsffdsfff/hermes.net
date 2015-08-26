@@ -10,7 +10,8 @@ namespace Arch.CMessaging.Client.Core.Collections
     {
         private Queue<TItem> queue;
         private int capacity;
-        private int waitCount;
+        private int waitOnPutting;
+        private int waitOnTaking;
         private object syncRoot = new object();
 
         public BlockingQueue(int capacity)
@@ -27,15 +28,37 @@ namespace Arch.CMessaging.Client.Core.Collections
             }
         }
 
-        public bool Offer(TItem item)
+        public bool Put(TItem item, int timeoutInMills)
+        {
+            try
+            {
+                Monitor.Enter(syncRoot);
+                if (queue.Count >= capacity)
+                {
+                    waitOnPutting++;
+                    if (!Monitor.Wait(syncRoot, timeoutInMills)) return false;
+                }
+                queue.Enqueue(item);
+                if (waitOnTaking < 1) return true;
+                waitOnTaking--;
+                Monitor.Pulse(syncRoot);
+            }
+            finally
+            {
+                Monitor.Exit(syncRoot);
+            }
+            return true;
+        }
+
+        public virtual bool Offer(TItem item)
         {
             try
             {
                 Monitor.Enter(syncRoot);
                 if (queue.Count >= capacity) return false;
                 queue.Enqueue(item);
-                if (waitCount < 1) return true;
-                waitCount--;
+                if (waitOnTaking < 1) return true;
+                waitOnTaking--;
                 Monitor.Pulse(syncRoot);
             }
             finally
@@ -55,10 +78,15 @@ namespace Arch.CMessaging.Client.Core.Collections
                 if (queue.Count > 0)
                 {
                     val = queue.Dequeue();
+                    if (waitOnPutting > 0)
+                    {
+                        waitOnPutting--;
+                        Monitor.Pulse(syncRoot);
+                    }
                 }
                 else
                 {
-                    waitCount++;
+                    waitOnTaking++;
                     Monitor.Wait(syncRoot);
                     val = this.Take();
                 }
