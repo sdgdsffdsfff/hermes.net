@@ -12,6 +12,7 @@ using Arch.CMessaging.Client.Core.Ioc;
 using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Core.MetaService;
 using Arch.CMessaging.Client.Core.Message.Retry;
+using System.Threading;
 
 namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 {
@@ -77,9 +78,9 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
                 consumerTask.Config = Config;
                 consumerTask.PullMessageResultMonitor = pullMessageResultMonitor;
 
-                ProducerConsumer<LongPollingConsumerTask> fakeThread = new ProducerConsumer<LongPollingConsumerTask>(int.MaxValue);
-                fakeThread.OnConsume += StartConsumerTaskLoop;
-                fakeThread.Produce(consumerTask);
+                Thread pollingThread = new Thread(consumerTask.Run);
+                pollingThread.IsBackground = false;
+                pollingThread.Start();
                 
                 return new BrokerLongPollingSubscribeHandler(consumerTask);
             }
@@ -88,12 +89,6 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
                 throw new Exception(string.Format("Start Consumer failed(topic={0}, partition={1}, groupId={2})", context
 					.Topic.Name, partitionId, context.GroupId), e);
             }
-        }
-
-        void StartConsumerTaskLoop(object sender, ConsumeEventArgs e)
-        {
-            LongPollingConsumerTask task = (e.ConsumingItem as SingleConsumingItem<LongPollingConsumerTask>).Item;
-            task.Run();
         }
 
         private class BrokerLongPollingSubscribeHandler : ISubscribeHandle
