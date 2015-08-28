@@ -156,10 +156,7 @@ namespace Arch.CMessaging.Client.Transport.EndPoint
                         EndpointSession tmp = sessions[endpoint];
                         if (tmp == endpointSession)
                         {
-                            if (tmp.IsClosed)
-                                sessions.TryRemove(endpoint, out removedSession);
-                            else if (!tmp.IsFlushing && !tmp.HasUnflushOps)
-                                sessions.TryRemove(endpoint, out removedSession);
+                            sessions.TryRemove(endpoint, out removedSession);
                         }
                     }
                 }
