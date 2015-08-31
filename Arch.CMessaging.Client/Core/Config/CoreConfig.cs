@@ -38,7 +38,7 @@ namespace Arch.CMessaging.Client.Core.Config
 
 		public int EndpointSessionDefaultWrtieTimeoutInMills { get { return 3600 * 1000; } }
 
-		public int EndpointSessionMaxIdleTime { get { return 60; } }
+		public int EndpointSessionMaxIdleTime { get { return 30; } }
 
 		public string AvroSchemaRetryUrlKey { get { return "schema.registry.url"; } }
 	}
