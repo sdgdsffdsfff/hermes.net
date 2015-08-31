@@ -80,9 +80,10 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
 
         }
 
-        private List<String> FetchMetaServerListFromExistingMetaServer()
+        private List<string> FetchMetaServerListFromExistingMetaServer()
         {
-            List<String> metaServerList = metaServerListRef.ReadFullFence();
+            List<string> metaServerList = new List<string>(metaServerListRef.ReadFullFence());
+            metaServerList.Shuffle();
 
             foreach (String ipPort in metaServerList)
             {
