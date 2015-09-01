@@ -42,7 +42,7 @@ namespace Arch.CMessaging.Client.Core.Ioc.Extensions.Annotation
             foreach (var type in assembly.GetTypes())
             {
                 bool toCheck = false;
-                if (!ignoreList.Contains(type.Namespace))
+                if (!ignoreList.Contains(type.Namespace) && type.Namespace != null)
                 {
                     if (checkList.Contains(type.Namespace))
                     {

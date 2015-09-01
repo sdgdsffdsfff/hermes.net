@@ -49,6 +49,15 @@ namespace Arch.CMessaging.Client.Core.Ioc.Utility
                         index.Add(key, list);
                     }
                 }
+                else
+                {
+                    if (ns.Length > level)
+                    {
+                        var list = index[key];
+                        if (list != null)
+                            list.Add(ns);
+                    }
+                }
             }
         }
 
