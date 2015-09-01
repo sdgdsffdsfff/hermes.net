@@ -23,12 +23,12 @@ namespace Arch.CMessaging.Client.Core.Ioc
         public Type ServiceType { get; set; }
 
         /// <summary>
-        /// The implementing type.
+        /// The name of the service.
         /// </summary>
         public string ServiceName { get; set; }
 
         /// <summary>
-        /// The name of the service.
+        /// The lifetime type of the registered service.
         /// </summary>
         public Type LifetimeType { get; set; }
     }

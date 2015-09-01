@@ -876,6 +876,7 @@
     <Compile Include="Core\Message\Payload\RawMessage.cs" />
     <Compile Include="Core\Message\Payload\AbstractPayloadCodec.cs" />
     <Compile Include="Transport\Command\Processor\SingleThreaded.cs" />
+    <Compile Include="Core\Ioc\Utility\NamespaceList.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -901,4 +902,7 @@
   -->
   <ItemGroup />
   <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Core\Ioc\Utility\" />
+  </ItemGroup>
 </Project>
