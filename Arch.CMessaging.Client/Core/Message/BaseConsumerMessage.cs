@@ -60,6 +60,11 @@ namespace Arch.CMessaging.Client.Core.Message
             return setSuccess;
         }
 
+        public void ResetStatus()
+        {
+            status.WriteFullFence(MessageStatus.NOT_SET);
+        }
+
         public void AddDurableAppProperty(String name, String value)
         {
             PropertiesHolder.AddDurableAppProperty(name, value);

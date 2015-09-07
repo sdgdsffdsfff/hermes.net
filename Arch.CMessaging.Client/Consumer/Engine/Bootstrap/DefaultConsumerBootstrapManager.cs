@@ -10,16 +10,20 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap
         [Inject]
         private IConsumerBootstrapRegistry registry;
 
-        public IConsumerBootstrap FindConsumerBootStrap(String endpointType)
+        public IConsumerBootstrap FindConsumerBootStrap(Topic topic)
         {
 
-            if (Endpoint.BROKER.Equals(endpointType) || Endpoint.KAFKA.Equals(endpointType))
+            if (Storage.KAFKA.Equals(topic.StorageType))
             {
-                return registry.FindConsumerBootstrap(endpointType);
+                return registry.FindConsumerBootstrap(Endpoint.KAFKA);
+            }
+            else if (Endpoint.BROKER.Equals(topic.EndpointType) || Endpoint.KAFKA.Equals(topic.EndpointType))
+            {
+                return registry.FindConsumerBootstrap(topic.EndpointType);
             }
             else
             {
-                throw new Exception(string.Format("Unknown endpoint type: {0}", endpointType));
+                throw new Exception(string.Format("Unknown endpoint type: {0}", topic.EndpointType));
             }
 
         }

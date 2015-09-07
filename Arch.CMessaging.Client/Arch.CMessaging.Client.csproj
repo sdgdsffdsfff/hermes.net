@@ -32,15 +32,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Arch.CFX">
-      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CFX.dll</HintPath>
-    </Reference>
-    <Reference Include="Arch.CMessaging.Core">
-      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CMessaging.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Framework.Logging.V2.API">
-      <HintPath>D:\tfs\Lib\Framework\Release\Framework.Logging.V2.API.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -52,6 +43,18 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Web" />
     <Reference Include="System.Configuration" />
+    <Reference Include="Arch.CFX">
+      <HintPath>..\Arch.CFX.dll</HintPath>
+    </Reference>
+    <Reference Include="Framework.Logging.V2.API">
+      <HintPath>..\Framework.Logging.V2.API.dll</HintPath>
+    </Reference>
+    <Reference Include="Arch.CFX.CLoggingAdapter">
+      <HintPath>..\Arch.CFX.CLoggingAdapter.dll</HintPath>
+    </Reference>
+    <Reference Include="Arch.CMessaging.Core">
+      <HintPath>..\Arch.CMessaging.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Agent\DefaultClientFactory.cs" />
@@ -734,11 +737,6 @@
     <Compile Include="Consumer\Engine\Notifier\IConsumerNotifier.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\BrokerConsumerBootstrap.cs" />
     <Compile Include="Consumer\Engine\CompositeSubscribeHandle.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IBrokerConsumptionStrategyRegistry.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IBrokerConsumptionStrategy.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultBrokerConsumptionRegistry.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BrokerLongPollingConsumptionStrategy.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\LongPollingConsumerTask.cs" />
     <Compile Include="Consumer\Engine\Lease\ConsumerLeaseManager.cs" />
     <Compile Include="Consumer\Engine\Config\ConsumerConfig.cs" />
     <Compile Include="Consumer\Engine\Monitor\IPullMessageResultMonitor.cs" />
@@ -877,6 +875,24 @@
     <Compile Include="Core\Message\Payload\AbstractPayloadCodec.cs" />
     <Compile Include="Transport\Command\Processor\SingleThreaded.cs" />
     <Compile Include="Core\Ioc\Utility\NamespaceList.cs" />
+    <Compile Include="Core\Config\ConsumerGroupSection.cs" />
+    <Compile Include="Consumer\Api\MessageListenerConfig.cs" />
+    <Compile Include="Consumer\Api\IMessageStream.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseCosumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingRegistry.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingStrategyConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\StrictlyOrderedConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\StrictlyOrderedConsumingStrategyConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Lease\ConsumerLeaseKey.cs" />
+    <Compile Include="Consumer\Engine\Notifier\INotifyStrategy.cs" />
+    <Compile Include="Consumer\Engine\Notifier\DefaultNotifyStrategy.cs" />
+    <Compile Include="Consumer\Engine\Notifier\StrictlyOrderedNotifyStrategy.cs" />
+    <Compile Include="Core\Message\NackDelayedBrokerConsumerMessage.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumingStrategyRegistry.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

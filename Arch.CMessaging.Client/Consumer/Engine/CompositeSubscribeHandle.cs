@@ -5,7 +5,12 @@ namespace Arch.CMessaging.Client.Consumer.Engine
 {
     public class CompositeSubscribeHandle : ISubscribeHandle
     {
-        private List<ISubscribeHandle> ChildHandles = new List<ISubscribeHandle>();
+        public List<ISubscribeHandle> ChildHandles { get; private set; }
+
+        public CompositeSubscribeHandle()
+        {
+            ChildHandles = new List<ISubscribeHandle>();
+        }
 
         public void AddSubscribeHandle(ISubscribeHandle handle)
         {
