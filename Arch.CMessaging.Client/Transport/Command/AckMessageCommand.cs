@@ -7,19 +7,32 @@ using Arch.CMessaging.Client.Net.Core.Buffer;
 
 namespace Arch.CMessaging.Client.Transport.Command
 {
-    public class AckMessageCommand : AbstractCommand
+    public class AckMessageCommandV2 : AbstractCommand
     {
-        // key: tpp, groupId, isResend
-        public ConcurrentDictionary<Triple<Tpp, string, bool>, List<AckContext>> m_ackMsgSeqs{ get; set;}
+
+        public const int NORMAL = 1;
+
+        public const int FORWARD_ONLY = 2;
 
         // key: tpp, groupId, isResend
-        public ConcurrentDictionary<Triple<Tpp, string, bool>, List<AckContext>> m_nackMsgSeqs{ get; set;}
+        public ConcurrentDictionary<Triple<Tpp, string, bool>, List<AckContext>> m_ackMsgSeqs{ get; set; }
 
-        public AckMessageCommand()
-            : base(CommandType.MessageAck)
+        // key: tpp, groupId, isResend
+        public ConcurrentDictionary<Triple<Tpp, string, bool>, List<AckContext>> m_nackMsgSeqs{ get; set; }
+
+        public int Type { get; set; }
+
+        public AckMessageCommandV2()
+            : this(NORMAL)
+        {
+        }
+
+        public AckMessageCommandV2(int type)
+            : base(CommandType.MessageAck, 2)
         {
             m_ackMsgSeqs = new ConcurrentDictionary<Triple<Tpp, string, bool>, List<AckContext>>();
             m_nackMsgSeqs = new ConcurrentDictionary<Triple<Tpp, string, bool>, List<AckContext>>();
+            Type = type;
         }
 
         protected override void ToBytes0(IoBuffer buf)
@@ -27,7 +40,7 @@ namespace Arch.CMessaging.Client.Transport.Command
             HermesPrimitiveCodec codec = new HermesPrimitiveCodec(buf);
             writeMsgSeqMap(codec, m_ackMsgSeqs);
             writeMsgSeqMap(codec, m_nackMsgSeqs);
-
+            codec.WriteInt(Type);
         }
 
         protected override void Parse0(IoBuffer buf)
@@ -35,6 +48,7 @@ namespace Arch.CMessaging.Client.Transport.Command
             HermesPrimitiveCodec codec = new HermesPrimitiveCodec(buf);
             m_ackMsgSeqs = readMsgSeqMap(codec);
             m_nackMsgSeqs = readMsgSeqMap(codec);
+            Type = codec.ReadInt();
         }
 
         private void writeMsgSeqMap(HermesPrimitiveCodec codec,

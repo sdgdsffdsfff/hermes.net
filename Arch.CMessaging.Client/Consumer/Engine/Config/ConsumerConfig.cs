@@ -70,6 +70,11 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Config
             get { return -500; }
         }
 
+        public int QueryOffsetTimeoutMillis
+        {
+            get { return 3000; }
+        }
+
         public String DefaultNotifierThreadCount
         { 
             get { return "1"; }

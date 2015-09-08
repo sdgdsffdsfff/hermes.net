@@ -893,6 +893,13 @@
     <Compile Include="Consumer\Engine\Notifier\StrictlyOrderedNotifyStrategy.cs" />
     <Compile Include="Core\Message\NackDelayedBrokerConsumerMessage.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumingStrategyRegistry.cs" />
+    <Compile Include="Consumer\Engine\Monitor\DefaultQueryOffsetResultMonitor.cs" />
+    <Compile Include="Consumer\Engine\Monitor\IQueryOffsetResultMonitor.cs" />
+    <Compile Include="Consumer\Engine\Transport\Command\Processor\QueryOffsetResultCommandProcessor.cs" />
+    <Compile Include="Core\Bo\Offset.cs" />
+    <Compile Include="Core\Message\Retry\NoRetryPolicy.cs" />
+    <Compile Include="Transport\Command\QueryOffsetCommand.cs" />
+    <Compile Include="Transport\Command\QueryOffsetResultCommand.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

@@ -26,12 +26,12 @@ namespace Arch.CMessaging.Client.Transport.Command
         private readonly object synLock = new object();
 
         public SendMessageCommand()
-            : this(null, 0)
+            : this(null, -1)
         {
         }
 
         public SendMessageCommand(string topic, int partition)
-            : base(CommandType.MessageSend)
+            : base(CommandType.MessageSend, 1)
         {
             this.Topic = topic;
             this.Partition = partition;

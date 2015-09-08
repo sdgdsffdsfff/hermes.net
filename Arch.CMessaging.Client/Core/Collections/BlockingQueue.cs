@@ -20,6 +20,14 @@ namespace Arch.CMessaging.Client.Core.Collections
             this.queue = new Queue<TItem>();
         }
 
+        public int RemainingCapacity
+        {
+            get
+            {
+                lock (syncRoot) { return capacity - queue.Count; }
+            }
+        }
+
         public int Count
         {
             get

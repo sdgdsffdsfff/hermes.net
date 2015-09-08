@@ -14,12 +14,9 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Monitor
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultPullMessageResultMonitor));
 
-        [Inject]
-        private ISystemClockService systemClockService;
+        private ConcurrentDictionary<long, PullMessageCommandV2> cmds = new ConcurrentDictionary<long, PullMessageCommandV2>();
 
-        private ConcurrentDictionary<long, PullMessageCommand> cmds = new ConcurrentDictionary<long, PullMessageCommand>();
-
-        public void Monitor(PullMessageCommand cmd)
+        public void Monitor(PullMessageCommandV2 cmd)
         {
             if (cmd != null)
             {
@@ -27,11 +24,11 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Monitor
             }
         }
 
-        public void ResultReceived(PullMessageResultCommand result)
+        public void ResultReceived(PullMessageResultCommandV2 result)
         {
             if (result != null)
             {
-                PullMessageCommand pullMessageCommand = null;
+                PullMessageCommandV2 pullMessageCommand = null;
                 cmds.TryRemove(result.Header.CorrelationId, out pullMessageCommand);
 
                 if (pullMessageCommand != null)
@@ -52,9 +49,9 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Monitor
             }
         }
 
-        public void Remove(PullMessageCommand cmd)
+        public void Remove(PullMessageCommandV2 cmd)
         {
-            PullMessageCommand removedCmd = null;
+            PullMessageCommandV2 removedCmd = null;
             if (cmd != null)
             {
                 cmds.TryRemove(cmd.Header.CorrelationId, out removedCmd);

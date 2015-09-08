@@ -20,7 +20,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Transport.Command.Processor
 
         public void Process(CommandProcessorContext ctx)
         {
-            PullMessageResultCommand cmd = (PullMessageResultCommand)ctx.Command;
+            PullMessageResultCommandV2 cmd = (PullMessageResultCommandV2)ctx.Command;
             cmd.Channel = ctx.Session;
             messageResultMonitor.ResultReceived(cmd);
         }

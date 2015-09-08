@@ -8,8 +8,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
     {
         protected override IConsumerTask GetConsumerTask(ConsumerContext context, int partitionId, int localCacheSize)
         {
-            return null;
-//            return new StrictlyOrderedConsumingStrategyConsumerTask(context, partitionId, localCacheSize);
+            return new StrictlyOrderedConsumingStrategyConsumerTask(context, partitionId, localCacheSize);
         }
     }
 }

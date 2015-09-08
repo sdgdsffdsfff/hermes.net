@@ -14,7 +14,7 @@ namespace Arch.CMessaging.Client.Transport.Command.Parser
         {
             var header = new Header();
             header.Parse(buf);
-            var command = header.CommandType.ToCommand();
+            var command = header.CommandType.ToCommand(header.Version);
             if (command != null)
             {
                 try

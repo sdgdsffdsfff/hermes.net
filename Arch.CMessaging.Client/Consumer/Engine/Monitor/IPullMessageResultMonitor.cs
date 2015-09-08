@@ -5,11 +5,11 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Monitor
 {
     public interface IPullMessageResultMonitor
     {
-        void Monitor(PullMessageCommand cmd);
+        void Monitor(PullMessageCommandV2 cmd);
 
-        void ResultReceived(PullMessageResultCommand ack);
+        void ResultReceived(PullMessageResultCommandV2 ack);
 
-        void Remove(PullMessageCommand cmd);
+        void Remove(PullMessageCommandV2 cmd);
     }
 }
 

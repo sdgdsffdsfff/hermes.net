@@ -52,8 +52,6 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 
         public BlockingQueue<IConsumerMessage> msgs;
 
-        public int cacheSize;
-
         public ConsumerContext Context;
 
         public int PartitionId;
@@ -83,6 +81,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
             Config = ComponentLocator.Lookup<ConsumerConfig>();
             retryPolicy = ComponentLocator.Lookup<IMetaService>().FindRetryPolicyByTopicAndGroup(
                 context.Topic.Name, context.GroupId);
+            PullMessageResultMonitor = ComponentLocator.Lookup<IPullMessageResultMonitor>();
 
             pullMessageTaskExecutor = new ProducerConsumer<BasePullMessagesTask>(int.MaxValue);
             pullMessageTaskExecutor.OnConsume += RunPullMessageTask;
@@ -109,7 +108,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
             PullMessagesTaskRun(task);
         }
 
-        private bool IsClosed()
+        protected bool IsClosed()
         {
             return closed;
         }
@@ -197,6 +196,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 
             ConsumerNotifier.Deregister(correlationId);
             leaseRef.WriteFullFence(null);
+            DoAfterConsuming(key, correlationId);
         }
 
         private void RenewLeaseTaskRun(RenewLeaseTask task)
@@ -341,7 +341,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
                     brokerMsg.Channel = channel;
                     brokerMsg.MsgSeq = messageMeta.Id;
 
-                    msgs.Add(brokerMsg);
+                    msgs.Add(DecorateBrokerMessage(brokerMsg));
                 }
             }
 
@@ -371,9 +371,9 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
                 BaseConsumerTask = baseConsumerTask;
             }
 
-            public abstract PullMessageCommand CreatePullMessageCommand(int timeout);
+            public abstract PullMessageCommandV2 CreatePullMessageCommand(int timeout);
 
-            public abstract void ResultReceived(PullMessageResultCommand ack);
+            public abstract void ResultReceived(PullMessageResultCommandV2 ack);
 
         }
 
@@ -429,15 +429,17 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 
         protected abstract void DoAfterConsuming(ConsumerLeaseKey key, long correlationId);
 
+        protected abstract BrokerConsumerMessage DecorateBrokerMessage(BrokerConsumerMessage brokerMsg);
+
         private void PullMessages(Endpoint endpoint, int timeout, BasePullMessagesTask task)
         {
-            SettableFuture<PullMessageResultCommand> future = SettableFuture<PullMessageResultCommand>.Create();
-            PullMessageCommand cmd = task.CreatePullMessageCommand(timeout);
+            SettableFuture<PullMessageResultCommandV2> future = SettableFuture<PullMessageResultCommandV2>.Create();
+            PullMessageCommandV2 cmd = task.CreatePullMessageCommand(timeout);
 
             cmd.Header.CorrelationId = task.CorrelationId;
             cmd.setFuture(future);
 
-            PullMessageResultCommand ack = null;
+            PullMessageResultCommandV2 ack = null;
 
             try
             {
@@ -471,7 +473,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
             }
         }
 
-        private void AppendMsgToQueue(PullMessageResultCommand ack, long correlationId)
+        private void AppendMsgToQueue(PullMessageResultCommandV2 ack, long correlationId)
         {
             List<TppConsumerMessageBatch> batches = ack.Batches;
             if (batches != null && batches.Count != 0)

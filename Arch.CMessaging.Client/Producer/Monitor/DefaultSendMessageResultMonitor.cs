@@ -18,6 +18,7 @@ using Arch.CMessaging.Client.Producer.Sender;
 using Com.Dianping.Cat;
 using Com.Dianping.Cat.Message;
 using Arch.CMessaging.Client.MetaEntity.Entity;
+using Com.Dianping.Cat.Message.Internals;
 
 namespace Arch.CMessaging.Client.Producer.Monitor
 {
@@ -81,6 +82,9 @@ namespace Arch.CMessaging.Client.Producer.Monitor
 
         private void Tracking(SendMessageCommand sendMessageCommand, bool success)
         {
+
+            string status = success ? CatConstants.SUCCESS : "Timeout";
+
             foreach (List<ProducerMessage> msgs in sendMessageCommand.ProducerMessages)
             {
                 foreach (ProducerMessage msg in msgs)
@@ -96,7 +100,16 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     tree.ParentMessageId = parentMsgId;
                     tree.RootMessageId = rootMsgId;
 
-                    t.Status = success ? CatConstants.SUCCESS : "Timeout";
+                    ITransaction elapseT = Cat.NewTransaction("Message.Produce.Elapse", msg.Topic);
+                    if (elapseT is DefaultTransaction)
+                    {
+                        ((DefaultTransaction)elapseT).Timestamp = msg.BornTime;
+                        elapseT.AddData("command.message.count", sendMessageCommand.MessageCount);
+                    }
+                    elapseT.Status = status;
+                    elapseT.Complete();
+
+                    t.Status = status;
                     t.Complete();
                 }
             }

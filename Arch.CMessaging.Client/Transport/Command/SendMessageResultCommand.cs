@@ -12,15 +12,23 @@ namespace Arch.CMessaging.Client.Transport.Command
         private int totalSize;
         private const long serialVersionUID = -2408812182538982540L;
         private Dictionary<int, bool> successes;
-        public SendMessageResultCommand() : this(0) { }
+
+        public SendMessageResultCommand()
+            : this(0)
+        {
+        }
+
         public SendMessageResultCommand(int totalSize)
-            : base(CommandType.ResultMessageSend)
+            : base(CommandType.ResultMessageSend, 1)
         {
             this.totalSize = totalSize;
             this.successes = new Dictionary<int, bool>();
         }
 
-        public bool IsAllResultSet() { return successes.Count == totalSize; }
+        public bool IsAllResultSet()
+        {
+            return successes.Count == totalSize;
+        }
 
         public void AddResults(Dictionary<int, bool> results)
         {

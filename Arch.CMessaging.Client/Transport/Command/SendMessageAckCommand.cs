@@ -10,8 +10,11 @@ namespace Arch.CMessaging.Client.Transport.Command
     public class SendMessageAckCommand : AbstractCommand
     {
         private const long serialVersionUID = -2462726426306841225L;
+
         public SendMessageAckCommand()
-            : base(CommandType.AckMessageSend) { }
+            : base(CommandType.AckMessageSend, 1)
+        {
+        }
 
         public bool Success { get; set; }
 

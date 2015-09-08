@@ -47,6 +47,13 @@ namespace Arch.CMessaging.Client.Core.Message.Retry
                             case "1":
                                 return new FrequencySpecifiedRetryPolicy(value.Trim());
 
+                            case "2": 
+                                if ("[]".Equals(value.Trim()))
+                                {
+                                    return new NoRetryPolicy();
+                                }
+                                break;
+
                             default:
                                 break;
                         }
