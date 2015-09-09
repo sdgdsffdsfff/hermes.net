@@ -23,13 +23,13 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
             foreach (IConsumerMessage msg in msgs)
             {
                 NackDelayedBrokerConsumerMessage nackDelayedMsg = new NackDelayedBrokerConsumerMessage((BrokerConsumerMessage)msg);
-                List<object> singleMsg = new List<object>();
+                List<IConsumerMessage> singleMsg = new List<IConsumerMessage>();
                 singleMsg.Add(nackDelayedMsg);
 
                 int retries = 0;
                 while (true)
                 {
-                    pipeline.Put(new Pair<ConsumerContext, List<object>>(context, singleMsg));
+                    pipeline.Put(new Pair<ConsumerContext, List<IConsumerMessage>>(context, singleMsg));
 
                     if (nackDelayedMsg.BaseConsumerMessage.Status == MessageStatus.FAIL)
                     {

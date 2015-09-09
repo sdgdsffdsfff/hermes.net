@@ -52,7 +52,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Config
 
         public int NoMessageWaitMaxMillis
         {
-            get { return 800; }
+            get { return 500; }
         }
 
         public int NoEndpointWaitBaseMillis
