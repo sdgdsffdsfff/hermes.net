@@ -186,7 +186,7 @@ namespace Arch.CMessaging.Client.Producer.Sender
             }
         }
 
-        public class TaskQueue
+        private class TaskQueue
         {
             private string topic;
             private int partition;
