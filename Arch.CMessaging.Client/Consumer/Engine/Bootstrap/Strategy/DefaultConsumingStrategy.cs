@@ -17,7 +17,7 @@ using System.Threading;
 namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 {
     [Named(ServiceType = typeof(IConsumingStrategy), ServiceName = "DEFAULT")]
-    public class DefaultConsumingStrategy : BaseCosumingStrategy
+    public class DefaultConsumingStrategy : BaseConsumingStrategy
     {
         protected override IConsumerTask GetConsumerTask(ConsumerContext context, int partitionId, int localCacheSize)
         {

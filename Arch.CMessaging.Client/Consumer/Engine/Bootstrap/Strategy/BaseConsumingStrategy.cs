@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 {
-    public abstract class BaseCosumingStrategy : IConsumingStrategy
+    public abstract class BaseConsumingStrategy : IConsumingStrategy
     {
 
         [Inject]
