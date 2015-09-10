@@ -32,6 +32,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Arch.CFX">
+      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CFX.dll</HintPath>
+    </Reference>
+    <Reference Include="Arch.CFX.CLoggingAdapter">
+      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CFX.CLoggingAdapter.dll</HintPath>
+    </Reference>
+    <Reference Include="Arch.CMessaging.Core">
+      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CMessaging.Core.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -43,17 +52,8 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Web" />
     <Reference Include="System.Configuration" />
-    <Reference Include="Arch.CFX">
-      <HintPath>..\Arch.CFX.dll</HintPath>
-    </Reference>
     <Reference Include="Framework.Logging.V2.API">
       <HintPath>..\Framework.Logging.V2.API.dll</HintPath>
-    </Reference>
-    <Reference Include="Arch.CFX.CLoggingAdapter">
-      <HintPath>..\Arch.CFX.CLoggingAdapter.dll</HintPath>
-    </Reference>
-    <Reference Include="Arch.CMessaging.Core">
-      <HintPath>..\Arch.CMessaging.Core.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -880,7 +880,7 @@
     <Compile Include="Consumer\Api\IMessageStream.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseConsumerTask.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumingStrategy.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseCosumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseConsumingStrategy.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingStrategy.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumerTask.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingRegistry.cs" />
@@ -925,7 +925,5 @@
   -->
   <ItemGroup />
   <ItemGroup />
-  <ItemGroup>
-    <Folder Include="Core\Ioc\Utility\" />
-  </ItemGroup>
+  <ItemGroup />
 </Project>
