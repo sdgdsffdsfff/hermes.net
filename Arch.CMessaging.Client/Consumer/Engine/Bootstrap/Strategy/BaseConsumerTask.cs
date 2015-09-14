@@ -158,6 +158,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
         {
             ConsumerNotifier.Register(correlationId, Context);
             DoBeforeConsuming(key, correlationId);
+            msgs.Clear();
             ISchedulePolicy noMessageSchedulePolicy = new ExponentialSchedulePolicy(Config.NoMessageWaitBaseMillis, Config.NoMessageWaitMaxMillis);
 
             while (!IsClosed() && !leaseRef.ReadFullFence().Expired)
@@ -195,7 +196,6 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
             }
 
             ConsumerNotifier.Deregister(correlationId);
-            msgs.Clear();
             leaseRef.WriteFullFence(null);
             DoAfterConsuming(key, correlationId);
         }
