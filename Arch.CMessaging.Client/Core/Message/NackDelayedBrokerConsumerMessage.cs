@@ -30,6 +30,14 @@ namespace Arch.CMessaging.Client.Core.Message
 
         // below are delegate methods
 
+        public DateTime BornTimeUtc
+        { 
+            get
+            {
+                return brokerMsg.BornTimeUtc;
+            }
+        }
+
         public BaseConsumerMessage BaseConsumerMessage
         { 
             get { return brokerMsg.BaseConsumerMessage; } 

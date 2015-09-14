@@ -9,6 +9,8 @@ namespace Arch.CMessaging.Client.Core.Message
 {
     public class BrokerConsumerMessage : IConsumerMessage, PropertiesHolderAware, BaseConsumerMessageAware
     {
+        public static DateTime EPOCH = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
         public BaseConsumerMessage BaseConsumerMessage{ get; private set; }
 
         public bool AckWithForwardOnly { get; set; }
@@ -41,6 +43,14 @@ namespace Arch.CMessaging.Client.Core.Message
                 {
                     return 0;
                 }
+            }
+        }
+
+        public DateTime BornTimeUtc
+        { 
+            get
+            {
+                return EPOCH.Add(new TimeSpan(BornTime * TimeSpan.TicksPerMillisecond));
             }
         }
 
