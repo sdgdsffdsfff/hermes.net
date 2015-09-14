@@ -195,6 +195,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
             }
 
             ConsumerNotifier.Deregister(correlationId);
+            msgs.Clear();
             leaseRef.WriteFullFence(null);
             DoAfterConsuming(key, correlationId);
         }
