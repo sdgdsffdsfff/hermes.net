@@ -460,7 +460,7 @@ namespace Arch.CMessaging.Client.Producer.Sender
                     }
                     catch (Exception ex)
                     {
-                        sender.Log.Error(ex);
+                        sender.Log.Warn("Timeout when sending message to broker, will retry", ex);
                         sender.SendMessageAcceptanceMonitor.Cancel(command.Header.CorrelationId);
                     }
                 }
