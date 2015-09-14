@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Net.Core.Buffer;
 using Arch.CMessaging.Client.Net.Core.Filterchain;
 using Arch.CMessaging.Client.Net.Core.Session;
@@ -46,7 +47,7 @@ namespace Arch.CMessaging.Client.Net.Filter.Stream
             // If we're already processing a stream we need to queue the WriteRequest.
             if (session.GetAttribute(CURRENT_STREAM) != null)
             {
-                ConcurrentQueue<IWriteRequest> queue = GetWriteRequestQueue(session);
+                ThreadSafeQueue<IWriteRequest> queue = GetWriteRequestQueue(session);
                 queue.Enqueue(writeRequest);
                 return;
             }
@@ -95,7 +96,7 @@ namespace Arch.CMessaging.Client.Net.Filter.Stream
                     IWriteRequest currentWriteRequest = (IWriteRequest)session.RemoveAttribute(CURRENT_WRITE_REQUEST);
 
                     // Write queued WriteRequests.
-                    ConcurrentQueue<IWriteRequest> queue = RemoveWriteRequestQueue(session);
+                    ThreadSafeQueue<IWriteRequest> queue = RemoveWriteRequestQueue(session);
                     if (queue != null)
                     {
                         IWriteRequest wr;
@@ -117,20 +118,20 @@ namespace Arch.CMessaging.Client.Net.Filter.Stream
 
         protected abstract IoBuffer GetNextBuffer(T message);
 
-        private ConcurrentQueue<IWriteRequest> GetWriteRequestQueue(IoSession session)
+        private ThreadSafeQueue<IWriteRequest> GetWriteRequestQueue(IoSession session)
         {
-            ConcurrentQueue<IWriteRequest> queue = session.GetAttribute<ConcurrentQueue<IWriteRequest>>(WRITE_REQUEST_QUEUE);
+            ThreadSafeQueue<IWriteRequest> queue = session.GetAttribute<ThreadSafeQueue<IWriteRequest>>(WRITE_REQUEST_QUEUE);
             if (queue == null)
             {
-                queue = new ConcurrentQueue<IWriteRequest>();
+                queue = new ThreadSafeQueue<IWriteRequest>();
                 session.SetAttribute(WRITE_REQUEST_QUEUE, queue);
             }
             return queue;
         }
 
-        private ConcurrentQueue<IWriteRequest> RemoveWriteRequestQueue(IoSession session)
+        private ThreadSafeQueue<IWriteRequest> RemoveWriteRequestQueue(IoSession session)
         {
-            return (ConcurrentQueue<IWriteRequest>)session.RemoveAttribute(WRITE_REQUEST_QUEUE);
+            return (ThreadSafeQueue<IWriteRequest>)session.RemoveAttribute(WRITE_REQUEST_QUEUE);
         }
     }
 }

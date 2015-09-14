@@ -1,2 +1,2 @@
 # hermes.net
-.Net for Hermes Client 
+Hermes Client for .NET

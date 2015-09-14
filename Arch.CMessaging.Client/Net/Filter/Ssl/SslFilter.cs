@@ -11,6 +11,7 @@ using Arch.CMessaging.Client.Net.Core.Future;
 using Arch.CMessaging.Client.Net.Core.Session;
 using Arch.CMessaging.Client.Net.Core.Write;
 using System.Diagnostics;
+using Arch.CMessaging.Client.Core.Collections;
 
 namespace Arch.CMessaging.Client.Net.Filter.Ssl
 {
@@ -246,7 +247,7 @@ namespace Arch.CMessaging.Client.Net.Filter.Ssl
         private readonly IoSessionStream _sessionStream;
         private readonly SslStream _sslStream;
         private volatile Boolean _authenticated;
-        private readonly ConcurrentQueue<IoFilterEvent> _preHandshakeEventQueue = new ConcurrentQueue<IoFilterEvent>();
+        private readonly ThreadSafeQueue<IoFilterEvent> _preHandshakeEventQueue = new ThreadSafeQueue<IoFilterEvent>();
         private INextFilter _currentNextFilter;
         private IWriteRequest _currentWriteRequest;
 

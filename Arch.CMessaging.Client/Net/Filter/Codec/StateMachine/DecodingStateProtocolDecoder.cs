@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Net.Core.Buffer;
 using Arch.CMessaging.Client.Net.Core.Session;
 
@@ -8,7 +9,7 @@ namespace Arch.CMessaging.Client.Net.Filter.Codec.StateMachine
     public class DecodingStateProtocolDecoder : IProtocolDecoder
     {
         private readonly IDecodingState _state;
-        private readonly ConcurrentQueue<IoBuffer> _undecodedBuffers = new ConcurrentQueue<IoBuffer>();
+        private readonly ThreadSafeQueue<IoBuffer> _undecodedBuffers = new ThreadSafeQueue<IoBuffer>();
         private IoSession _session;
 
         public DecodingStateProtocolDecoder(IDecodingState state)
