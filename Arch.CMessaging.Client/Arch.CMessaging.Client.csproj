@@ -33,13 +33,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Arch.CFX">
-      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CFX.dll</HintPath>
-    </Reference>
-    <Reference Include="Arch.CFX.CLoggingAdapter">
-      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CFX.CLoggingAdapter.dll</HintPath>
+      <HintPath>..\..\Common\Lib\Framework\Release\Arch.CFX.dll</HintPath>
     </Reference>
     <Reference Include="Arch.CMessaging.Core">
-      <HintPath>D:\tfs\Lib\Framework\Release\Arch.CMessaging.Core.dll</HintPath>
+      <HintPath>..\..\Common\Lib\Framework\Release\Arch.CMessaging.Core.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -95,6 +92,7 @@
     <Compile Include="Core\Collections\RedBlackNode.cs" />
     <Compile Include="Core\Collections\SequentialNode.cs" />
     <Compile Include="Core\Collections\SortedAndIndexedBlockingQueue.cs" />
+    <Compile Include="Core\Collections\ThreadSafeQueue.cs" />
     <Compile Include="Core\Collections\TimeoutNotifyProducerConsumer.cs" />
     <Compile Include="Core\Collections\TimeoutNotifyQueue.cs" />
     <Compile Include="Core\Config\CoreConfig.cs" />

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using Arch.CMessaging.Client.Net.Core.Session;
 using System.Diagnostics;
+using Arch.CMessaging.Client.Core.Collections;
 
 namespace Arch.CMessaging.Client.Net.Filter.Executor
 {
@@ -106,7 +107,7 @@ namespace Arch.CMessaging.Client.Net.Filter.Executor
             }
         }
 
-        private void Print(ConcurrentQueue<IoEvent> queue, IoEvent ioe)
+        private void Print(ThreadSafeQueue<IoEvent> queue, IoEvent ioe)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("Adding event ")
@@ -137,8 +138,8 @@ namespace Arch.CMessaging.Client.Net.Filter.Executor
             public readonly Object syncRoot = new Byte[0];
             
             /// A queue of ordered event waiting to be processed
-            
-            public readonly ConcurrentQueue<IoEvent> tasksQueue = new ConcurrentQueue<IoEvent>();
+
+            public readonly ThreadSafeQueue<IoEvent> tasksQueue = new ThreadSafeQueue<IoEvent>();
             
             /// The current task state
             

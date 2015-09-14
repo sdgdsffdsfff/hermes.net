@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Net.Core.Buffer;
 using Arch.CMessaging.Client.Net.Core.Future;
 using Arch.CMessaging.Client.Net.Core.Service;
@@ -213,7 +214,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Socket
         internal partial class SocketContext
         {
             public readonly System.Net.Sockets.Socket _socket;
-            private readonly ConcurrentQueue<AsyncDatagramSession> _flushingSessions = new ConcurrentQueue<AsyncDatagramSession>();
+            private readonly ThreadSafeQueue<AsyncDatagramSession> _flushingSessions = new ThreadSafeQueue<AsyncDatagramSession>();
             private Int32 _writing;
 
             public System.Net.Sockets.Socket Socket { get { return _socket; } }

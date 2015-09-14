@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
+using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Net.Core.Filterchain;
 using Arch.CMessaging.Client.Net.Core.Service;
 using Arch.CMessaging.Client.Net.Core.Session;
@@ -15,7 +16,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Loopback
         private readonly LoopbackEndPoint _localEP;
         private readonly LoopbackEndPoint _remoteEP;
         private readonly LoopbackFilterChain _filterChain;
-        private readonly ConcurrentQueue<Object> _receivedMessageQueue;
+        private readonly ThreadSafeQueue<Object> _receivedMessageQueue;
         private readonly LoopbackSession _remoteSession;
         private readonly Object _lock;
 
@@ -31,7 +32,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Loopback
             _localEP = localEP;
             _remoteEP = remoteEntry.Endpoint;
             _filterChain = new LoopbackFilterChain(this);
-            _receivedMessageQueue = new ConcurrentQueue<Object>();
+            _receivedMessageQueue = new ThreadSafeQueue<Object>();
             _remoteSession = new LoopbackSession(this, remoteEntry);
         }
 
@@ -47,7 +48,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Loopback
             _remoteEP = remoteSession._localEP;
             _filterChain = new LoopbackFilterChain(this);
             _remoteSession = remoteSession;
-            _receivedMessageQueue = new ConcurrentQueue<Object>();
+            _receivedMessageQueue = new ThreadSafeQueue<Object>();
         }
 
         public override IoProcessor Processor
@@ -80,7 +81,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Loopback
             get { return _remoteSession; }
         }
 
-        internal ConcurrentQueue<Object> ReceivedMessageQueue
+        internal ThreadSafeQueue<Object> ReceivedMessageQueue
         {
             get { return _receivedMessageQueue; }
         }
