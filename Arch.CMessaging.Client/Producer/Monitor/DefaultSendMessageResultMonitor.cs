@@ -29,6 +29,7 @@ namespace Arch.CMessaging.Client.Producer.Monitor
         private ConcurrentDictionary<long, SendMessageCommand> commands = new ConcurrentDictionary<long, SendMessageCommand>();
         private object syncRoot = new object();
         private Timer timer;
+        private long ticksOfLocalMinusUtc;
 
         [Inject]
         private ISystemClockService systemClockService;
@@ -103,7 +104,8 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     ITransaction elapseT = Cat.NewTransaction("Message.Produce.Elapse", msg.Topic);
                     if (elapseT is DefaultTransaction)
                     {
-                        ((DefaultTransaction)elapseT).Timestamp = msg.BornTime;
+                        // cat needs local mill of ticks
+                        ((DefaultTransaction)elapseT).Timestamp = (ticksOfLocalMinusUtc + TimeExtension.UnixTimestampToTicks(msg.BornTime)) / TimeSpan.TicksPerMillisecond;
                         elapseT.AddData("command.message.count", sendMessageCommand.MessageCount);
                     }
                     elapseT.Status = status;
@@ -112,6 +114,7 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     t.Status = status;
                     t.Complete();
                 }
+
             }
         }
 
@@ -119,6 +122,10 @@ namespace Arch.CMessaging.Client.Producer.Monitor
 
         public void Initialize()
         {
+            DateTime localNow = DateTime.Now;
+            DateTime utcNow = TimeZone.CurrentTimeZone.ToUniversalTime(localNow);
+            ticksOfLocalMinusUtc = localNow.Ticks - utcNow.Ticks;
+
             timer = new Timer(TimeoutCheck, null, 5, Timeout.Infinite);
         }
 
