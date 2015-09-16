@@ -23,6 +23,8 @@ using Arch.CMessaging.Client.Core.Message.Retry;
 using Arch.CMessaging.Client.Consumer.Build;
 using Arch.CMessaging.Client.Core.MetaService;
 using Arch.CMessaging.Client.Core.Schedule;
+using Com.Dianping.Cat;
+using Com.Dianping.Cat.Message;
 
 namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
 {
@@ -415,8 +417,10 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap.Strategy
             }
             catch (Exception e)
             {
-                log.Warn(string.Format("Exception occurred while pulling message(topic={0}, partition={1}, groupId={2}, sessionId={3}).",
-                        Context.Topic.Name, PartitionId, Context.GroupId, Context.SessionId), e);
+                ITransaction t = Cat.NewTransaction("Message.Pull.Internal", Context.Topic.Name);
+                t.Status = CatConstants.SUCCESS;
+                t.AddData("msg", e.Message);
+                t.Complete();
             }
             finally
             {
