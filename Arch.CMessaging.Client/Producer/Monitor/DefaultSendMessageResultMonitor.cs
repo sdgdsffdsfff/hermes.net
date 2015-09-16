@@ -101,7 +101,6 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     tree.ParentMessageId = parentMsgId;
                     tree.RootMessageId = rootMsgId;
 
-                    /*
                     ITransaction elapseT = Cat.NewTransaction("Message.Produce.Elapse", msg.Topic);
                     if (elapseT is DefaultTransaction)
                     {
@@ -111,7 +110,6 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     }
                     elapseT.Status = status;
                     elapseT.Complete();
-                    */
 
                     t.Status = status;
                     t.Complete();
