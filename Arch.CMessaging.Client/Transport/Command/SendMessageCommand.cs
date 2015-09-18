@@ -21,8 +21,6 @@ namespace Arch.CMessaging.Client.Transport.Command
         private ThreadSafe.Integer msgCounter;
         private ConcurrentDictionary<int, IList<ProducerMessage>> messages;
         private Dictionary<int, SettableFuture<SendResult>> futures;
-        private bool m_accepted = false;
-        private long m_acceptedTime = -1L;
         private readonly object synLock = new object();
 
         public SendMessageCommand()
@@ -48,23 +46,6 @@ namespace Arch.CMessaging.Client.Transport.Command
         public int MessageCount { get { return msgCounter.ReadFullFence(); } }
 
         public IEnumerable<IList<ProducerMessage>> ProducerMessages { get { return messages.Values; } }
-
-        public void Accepted(long acceptedTime)
-        {
-            lock (synLock)
-            {
-                m_acceptedTime = acceptedTime;
-                m_accepted = true;
-            }
-        }
-
-        public bool isExpired(long now, long timeoutMillis)
-        {
-            lock (synLock)
-            {
-                return m_accepted && (now - m_acceptedTime > timeoutMillis);
-            }
-        }
 
         public void AddMessage(ProducerMessage message, SettableFuture<SendResult> future)
         {

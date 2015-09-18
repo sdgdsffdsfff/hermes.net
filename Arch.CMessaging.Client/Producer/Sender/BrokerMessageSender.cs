@@ -127,29 +127,6 @@ namespace Arch.CMessaging.Client.Producer.Sender
             return task.Submit(message);
         }
 
-        public void Resend(List<SendMessageCommand> timeoutCmds)
-        {
-            foreach (SendMessageCommand cmd in timeoutCmds)
-            {
-                List<Pair<ProducerMessage, SettableFuture<SendResult>>> msgFuturePairs = cmd.GetProducerMessageFuturePairs();
-                foreach (Pair<ProducerMessage, SettableFuture<SendResult>> pair in msgFuturePairs)
-                {
-                    Resend(pair.Key, pair.Value);
-                }
-            }
-        }
-
-        private void Resend(ProducerMessage msg, SettableFuture<SendResult> future)
-        {
-            Pair<string, int> tp = new Pair<string, int>(msg.Topic, msg.Partition);
-            TaskQueue taskQueue = null;
-            taskQueues.TryGetValue(tp, out taskQueue);
-            if (taskQueue != null)
-            {
-                taskQueue.Resubmit(msg, future);
-            }
-        }
-
         private void StartEndpointSender()
         {
             int checkIntervalBase = config.BrokerSenderNetworkIoCheckIntervalBaseMillis;
@@ -258,12 +235,6 @@ namespace Arch.CMessaging.Client.Producer.Sender
                     future.SetException(throwable);
                 }
             }
-
-            public void Resubmit(ProducerMessage msg, SettableFuture<SendResult> future)
-            {
-                Offer(msg, future);
-            }
-
         }
 
         private class ProducerMessageCallback : IFutureCallback<SendResult>
@@ -424,19 +395,11 @@ namespace Arch.CMessaging.Client.Producer.Sender
 
                     if (command != null)
                     {
-                        if (SendMessagesToBroker(command))
-                        {
-                            command.Accepted(sender.systemClockService.Now());
-                        }
-                        else
+                        if (!SendMessagesToBroker(command))
                         {
                             taskQueue.Push(command);
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    sender.Log.Error(ex);
                 }
                 finally
                 {
@@ -447,16 +410,17 @@ namespace Arch.CMessaging.Client.Producer.Sender
             private bool SendMessagesToBroker(SendMessageCommand command)
             {
                 var brokerAccepted = false;
+                IFuture<object> resultFuture = null;
                 var endpoint = sender.EndpointManager.GetEndpoint(topic, partition);
                 if (endpoint != null)
                 {
-                    var future = sender.SendMessageAcceptanceMonitor.Monitor(command.Header.CorrelationId);
-                    sender.SendMessageResultMonitor.Monitor(command);
+                    var acceptFuture = sender.SendMessageAcceptanceMonitor.Monitor(command.Header.CorrelationId);
+                    resultFuture = sender.SendMessageResultMonitor.Monitor(command);
                     int timeout = (int)sender.Config.BrokerSenderSendTimeoutMillis;
                     sender.EndpointClient.WriteCommand(endpoint, command, timeout);
                     try
                     {
-                        brokerAccepted = future.Get(timeout);
+                        brokerAccepted = acceptFuture.Get(timeout);
                     }
                     catch (Exception ex)
                     {
@@ -466,7 +430,30 @@ namespace Arch.CMessaging.Client.Producer.Sender
                 }
                 else
                     sender.Log.Debug("no endpoint found, ignore it");
-                return brokerAccepted;
+
+                if (brokerAccepted)
+                {
+                    return WaitForBrokerResult(command, resultFuture);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            private bool WaitForBrokerResult(SendMessageCommand cmd, IFuture<object> resultFuture)
+            {
+                try
+                {
+                    resultFuture.Get((int)sender.Config.SendMessageReadResultTimeoutMillis);
+                    return true;
+                }
+                catch
+                {
+                    sender.SendMessageResultMonitor.Cancel(cmd);
+                }
+
+                return false;
             }
         }
 

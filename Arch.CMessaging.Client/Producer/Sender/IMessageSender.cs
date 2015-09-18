@@ -13,6 +13,5 @@ namespace Arch.CMessaging.Client.Producer.Sender
     {
         IFuture<SendResult> Send(ProducerMessage message);
 
-        void Resend(List<SendMessageCommand> timeoutCmds);
     }
 }
