@@ -19,7 +19,7 @@ namespace Arch.CMessaging.Client.Producer.Config
 
         public const int DEFAULT_BROKER_SENDER_TASK_QUEUE_SIZE = 500000;
 
-        public const int DEFAULT_BROKER_SENDER_BATCH_SIZE = 10000;
+        public const int DEFAULT_BROKER_SENDER_BATCH_SIZE = 500;
 
         public const int DEFAULT_BROKER_SENDER_NETWORK_IO_CHECK_INTERVAL_BASE_MILLIS = 5;
 
