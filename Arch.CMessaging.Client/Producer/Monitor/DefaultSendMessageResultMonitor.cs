@@ -26,18 +26,18 @@ namespace Arch.CMessaging.Client.Producer.Monitor
     public class DefaultSendMessageResultMonitor : ISendMessageResultMonitor, IInitializable
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultSendMessageResultMonitor));
-        private ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<object>>> commands = new ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<object>>>();
+        private ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<bool>>> commands = new ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<bool>>>();
         private long ticksOfLocalMinusUtc;
         private object syncRoot = new object();
 
         #region ISendMessageResultMonitor Members
 
-        public IFuture<object> Monitor(SendMessageCommand command)
+        public IFuture<bool> Monitor(SendMessageCommand command)
         {
             lock (syncRoot)
             {
-                SettableFuture<object> future = SettableFuture<object>.Create();
-                commands[command.Header.CorrelationId] = new Pair<SendMessageCommand, SettableFuture<object>>(command, future);
+                SettableFuture<bool> future = SettableFuture<bool>.Create();
+                commands[command.Header.CorrelationId] = new Pair<SendMessageCommand, SettableFuture<bool>>(command, future);
                 return future;
             }
         }
@@ -46,7 +46,7 @@ namespace Arch.CMessaging.Client.Producer.Monitor
         {
             if (result != null)
             {
-                Pair<SendMessageCommand, SettableFuture<object>> pair = null;
+                Pair<SendMessageCommand, SettableFuture<bool>> pair = null;
                 lock (syncRoot)
                 {
                     commands.TryRemove(result.Header.CorrelationId, out pair);
@@ -57,8 +57,15 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     try
                     {
                         SendMessageCommand sendMessageCommand = pair.Key;
-                        SettableFuture<object> future = pair.Value;
-                        future.Set(null);
+                        SettableFuture<bool> future = pair.Value;
+                        if (IsResultSuccess(result))
+                        {
+                            future.Set(true);
+                        }
+                        else
+                        {
+                            future.Set(false);
+                        }
                         sendMessageCommand.OnResultReceived(result);
                         Tracking(sendMessageCommand, true);
                     }
@@ -74,7 +81,7 @@ namespace Arch.CMessaging.Client.Producer.Monitor
         {
             lock (syncRoot)
             {
-                Pair<SendMessageCommand, SettableFuture<object>> pair = null;
+                Pair<SendMessageCommand, SettableFuture<bool>> pair = null;
                 commands.TryRemove(cmd.Header.CorrelationId, out pair);
             }
         }
@@ -86,6 +93,20 @@ namespace Arch.CMessaging.Client.Producer.Monitor
             DateTime localNow = DateTime.Now;
             DateTime utcNow = TimeZone.CurrentTimeZone.ToUniversalTime(localNow);
             ticksOfLocalMinusUtc = localNow.Ticks - utcNow.Ticks;
+        }
+
+        private bool IsResultSuccess(SendMessageResultCommand result)
+        {
+            Dictionary<int, bool> successes = result.Successes;
+            foreach (bool success in successes.Values)
+            {
+                if (!success)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void Tracking(SendMessageCommand sendMessageCommand, bool success)

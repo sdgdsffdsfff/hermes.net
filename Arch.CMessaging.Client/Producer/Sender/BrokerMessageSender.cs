@@ -410,7 +410,7 @@ namespace Arch.CMessaging.Client.Producer.Sender
             private bool SendMessagesToBroker(SendMessageCommand command)
             {
                 var brokerAccepted = false;
-                IFuture<object> resultFuture = null;
+                IFuture<bool> resultFuture = null;
                 var endpoint = sender.EndpointManager.GetEndpoint(topic, partition);
                 if (endpoint != null)
                 {
@@ -441,12 +441,11 @@ namespace Arch.CMessaging.Client.Producer.Sender
                 }
             }
 
-            private bool WaitForBrokerResult(SendMessageCommand cmd, IFuture<object> resultFuture)
+            private bool WaitForBrokerResult(SendMessageCommand cmd, IFuture<bool> resultFuture)
             {
                 try
                 {
-                    resultFuture.Get((int)sender.Config.SendMessageReadResultTimeoutMillis);
-                    return true;
+                    return resultFuture.Get((int)sender.Config.SendMessageReadResultTimeoutMillis);
                 }
                 catch
                 {

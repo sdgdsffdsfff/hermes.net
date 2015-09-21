@@ -9,7 +9,7 @@ namespace Arch.CMessaging.Client.Producer.Monitor
 {
     public interface ISendMessageResultMonitor
     {
-        IFuture<object> Monitor(SendMessageCommand command);
+        IFuture<bool> Monitor(SendMessageCommand command);
 
         void Cancel(SendMessageCommand cmd);
 
