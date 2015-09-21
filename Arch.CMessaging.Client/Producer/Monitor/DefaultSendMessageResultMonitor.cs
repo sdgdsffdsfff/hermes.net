@@ -23,19 +23,23 @@ using Com.Dianping.Cat.Message.Internals;
 namespace Arch.CMessaging.Client.Producer.Monitor
 {
     [Named(ServiceType = typeof(ISendMessageResultMonitor))]
-    public class DefaultSendMessageResultMonitor : ISendMessageResultMonitor
+    public class DefaultSendMessageResultMonitor : ISendMessageResultMonitor, IInitializable
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultSendMessageResultMonitor));
         private ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<object>>> commands = new ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<object>>>();
         private long ticksOfLocalMinusUtc;
+        private object syncRoot = new object();
 
         #region ISendMessageResultMonitor Members
 
         public IFuture<object> Monitor(SendMessageCommand command)
         {
-            SettableFuture<object> future = SettableFuture<object>.Create();
-            commands[command.Header.CorrelationId] = new Pair<SendMessageCommand, SettableFuture<object>>(command, future);
-            return future;
+            lock (syncRoot)
+            {
+                SettableFuture<object> future = SettableFuture<object>.Create();
+                commands[command.Header.CorrelationId] = new Pair<SendMessageCommand, SettableFuture<object>>(command, future);
+                return future;
+            }
         }
 
         public void ResultReceived(SendMessageResultCommand result)
@@ -43,7 +47,10 @@ namespace Arch.CMessaging.Client.Producer.Monitor
             if (result != null)
             {
                 Pair<SendMessageCommand, SettableFuture<object>> pair = null;
-                commands.TryRemove(result.Header.CorrelationId, out pair);
+                lock (syncRoot)
+                {
+                    commands.TryRemove(result.Header.CorrelationId, out pair);
+                }
                 if (pair != null)
                 {
 
@@ -65,11 +72,21 @@ namespace Arch.CMessaging.Client.Producer.Monitor
 
         public void Cancel(SendMessageCommand cmd)
         {
-            Pair<SendMessageCommand, SettableFuture<object>> pair = null;
-            commands.TryRemove(cmd.Header.CorrelationId, out pair);
+            lock (syncRoot)
+            {
+                Pair<SendMessageCommand, SettableFuture<object>> pair = null;
+                commands.TryRemove(cmd.Header.CorrelationId, out pair);
+            }
         }
 
         #endregion
+
+        public void Initialize()
+        {
+            DateTime localNow = DateTime.Now;
+            DateTime utcNow = TimeZone.CurrentTimeZone.ToUniversalTime(localNow);
+            ticksOfLocalMinusUtc = localNow.Ticks - utcNow.Ticks;
+        }
 
         private void Tracking(SendMessageCommand sendMessageCommand, bool success)
         {
