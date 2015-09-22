@@ -13,9 +13,16 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public static V TryGet<K, V>(IDictionary<K, V> d, K key)
         {
-            V result = default(V);
-            d.TryGetValue(key, out result);
-            return result;
+            if (d == null || key == null)
+            {
+                return null;
+            }
+            else
+            {
+                V result = default(V);
+                d.TryGetValue(key, out result);
+                return result;
+            }
         }
 
         public static void Shuffle<T>(this IList<T> list)
