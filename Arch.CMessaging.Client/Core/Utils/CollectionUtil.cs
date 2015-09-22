@@ -13,13 +13,14 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public static V TryGet<K, V>(IDictionary<K, V> d, K key)
         {
+            V result = default(V);
+
             if (d == null || key == null)
             {
-                return null;
+                return result;
             }
             else
             {
-                V result = default(V);
                 d.TryGetValue(key, out result);
                 return result;
             }
