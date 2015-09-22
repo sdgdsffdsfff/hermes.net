@@ -409,6 +409,8 @@ namespace Arch.CMessaging.Client.Producer.Sender
 
             private bool SendMessagesToBroker(SendMessageCommand command)
             {
+                try
+                {
                 var brokerAccepted = false;
                 IFuture<bool> resultFuture = null;
                 var endpoint = sender.EndpointManager.GetEndpoint(topic, partition);
@@ -424,7 +426,7 @@ namespace Arch.CMessaging.Client.Producer.Sender
                     }
                     catch (Exception ex)
                     {
-                        sender.Log.Warn("Timeout when sending message to broker, will retry", ex);
+                        sender.Log.Warn("Timeout when waiting for produce acceptance from broker, will retry", ex);
                         sender.SendMessageAcceptanceMonitor.Cancel(command.Header.CorrelationId);
                     }
                 }
@@ -439,6 +441,12 @@ namespace Arch.CMessaging.Client.Producer.Sender
                 {
                     return false;
                 }
+                }
+                catch(Exception ex)
+                {
+                    sender.Log.Warn("Exception occurred while sending message to broker, will retry it", ex);
+                    return false;
+                }
             }
 
             private bool WaitForBrokerResult(SendMessageCommand cmd, IFuture<bool> resultFuture)
@@ -447,8 +455,9 @@ namespace Arch.CMessaging.Client.Producer.Sender
                 {
                     return resultFuture.Get((int)sender.Config.SendMessageReadResultTimeoutMillis);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    sender.Log.Warn("Timeout when waiting for produce result from broker, will retry", ex);
                     sender.SendMessageResultMonitor.Cancel(cmd);
                 }
 
