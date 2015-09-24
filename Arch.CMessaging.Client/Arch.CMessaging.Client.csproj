@@ -32,8 +32,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Arch.CFX">
+      <HintPath>..\..\Common\Lib\Framework\Release\Arch.CFX.dll</HintPath>
+    </Reference>
+    <Reference Include="Arch.CMessaging.Core">
+      <HintPath>..\..\Common\Lib\Framework\Release\Arch.CMessaging.Core.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
-    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.Serialization" />
@@ -42,12 +47,29 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Configuration" />
     <Reference Include="Framework.Logging.V2.API">
       <HintPath>..\Framework.Logging.V2.API.dll</HintPath>
     </Reference>
-    <Reference Include="System.Web" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Agent\DefaultClientFactory.cs" />
+    <Compile Include="API\IBrowserConsumer_1.2.cs" />
+    <Compile Include="API\IConsumerChannel.cs" />
+    <Compile Include="API\IConsumerFactory.cs" />
+    <Compile Include="API\IDeadLetterConsumer.cs" />
+    <Compile Include="API\IMessage.cs" />
+    <Compile Include="API\IMessageChannel.cs" />
+    <Compile Include="API\IMessageChannelConfiguration.cs" />
+    <Compile Include="API\IMessageChannelConfigurator.cs" />
+    <Compile Include="API\IMessageChannelFactory.cs" />
+    <Compile Include="API\IMessageConsumer.cs" />
+    <Compile Include="API\IMessageProducer.cs" />
+    <Compile Include="API\IProducerChannel.cs" />
+    <Compile Include="API\IProducerFactory.cs" />
+    <Compile Include="API\IQueueConsumer.cs" />
+    <Compile Include="API\ITopicConsumer.cs" />
     <Compile Include="Core\Bo\SchemaView.cs" />
     <Compile Include="Core\Bo\SubscriptionView.cs" />
     <Compile Include="Core\Bo\Tpg.cs" />
@@ -70,6 +92,7 @@
     <Compile Include="Core\Collections\RedBlackNode.cs" />
     <Compile Include="Core\Collections\SequentialNode.cs" />
     <Compile Include="Core\Collections\SortedAndIndexedBlockingQueue.cs" />
+    <Compile Include="Core\Collections\ThreadSafeQueue.cs" />
     <Compile Include="Core\Collections\TimeoutNotifyProducerConsumer.cs" />
     <Compile Include="Core\Collections\TimeoutNotifyQueue.cs" />
     <Compile Include="Core\Config\CoreConfig.cs" />
@@ -148,6 +171,107 @@
     <Compile Include="Core\Utils\TimeExtension.cs" />
     <Compile Include="Core\Env\Env.cs" />
     <Compile Include="Core\Utils\Triple.cs" />
+    <Compile Include="Event\AckedEventHandler.cs" />
+    <Compile Include="Event\AckingEventHandler.cs" />
+    <Compile Include="Event\BrokerAckEventHandler.cs" />
+    <Compile Include="Event\BrokerNackEventHandler.cs" />
+    <Compile Include="Event\CallbackExceptionEventHandler.cs" />
+    <Compile Include="Event\ChannelOutOfCapacityEventHandler.cs" />
+    <Compile Include="Event\ConsumerCallbackEventHandler.cs" />
+    <Compile Include="Event\ConsumExceptionEventHandler.cs" />
+    <Compile Include="Event\FlowControlEventHandler.cs" />
+    <Compile Include="Impl\ChannelFactory.cs" />
+    <Compile Include="Impl\Consumer\AbstractConsumer.cs" />
+    <Compile Include="Impl\Consumer\AppInternals\ConsumerTraceItems.cs" />
+    <Compile Include="Impl\Consumer\ChannelConsumerCountor.cs" />
+    <Compile Include="Impl\Consumer\Check\ConsumerHealthCheck.cs" />
+    <Compile Include="Impl\Consumer\ConfigUtil.cs" />
+    <Compile Include="Impl\Consumer\ConnectionLimitManager.cs" />
+    <Compile Include="Impl\Consumer\ConsumerBuffer.cs" />
+    <Compile Include="Impl\Consumer\ConsumerChannel.cs" />
+    <Compile Include="Impl\Consumer\ConsumerFactory.cs" />
+    <Compile Include="Impl\Consumer\DeadLetterConsumer.cs" />
+    <Compile Include="Impl\Consumer\DefaultClient.cs" />
+    <Compile Include="Impl\Consumer\DefaultMessageChannelConfiguration.cs" />
+    <Compile Include="Impl\Consumer\DefaultMessageChannelConfigurator.cs" />
+    <Compile Include="Impl\Consumer\DefaultService.cs" />
+    <Compile Include="Impl\Consumer\IClient.cs" />
+    <Compile Include="Impl\Consumer\IConsumerBuffer.cs" />
+    <Compile Include="Impl\Consumer\InputBuffer.cs" />
+    <Compile Include="Impl\Consumer\IService.cs" />
+    <Compile Include="Impl\Consumer\Log\LogPartitionerByConsumer.cs" />
+    <Compile Include="Impl\Consumer\MemoryManager.cs" />
+    <Compile Include="Impl\Consumer\Message.cs" />
+    <Compile Include="Impl\Consumer\MessageReader.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Ack\AckMessageCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Ack\AckRequestCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Ack\AckResponseCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Ack\AckResponseLatencyMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\ChannelCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\ConsumerCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Exception\ExceptionCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Exception\ExceptionType.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Handling\HandlingCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Handling\HandlingLatencyMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\MemoryMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Message\MessageLatencyMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\MetricUtil.cs" />
+    <Compile Include="Impl\Consumer\Metrics\NoServerCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Pulling\PullingDiscardCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Pulling\PullingMessageCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Pulling\PullingRequestCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Pulling\PullingResponseCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Pulling\PullingResponseLatencyMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Sync\SyncCountMetric.cs" />
+    <Compile Include="Impl\Consumer\Metrics\Util.cs" />
+    <Compile Include="Impl\Consumer\Models\CBox.cs" />
+    <Compile Include="Impl\Consumer\Models\ChunkSubMessage.cs" />
+    <Compile Include="Impl\Consumer\Models\ExchangePhysicalServer.cs" />
+    <Compile Include="Impl\Consumer\Models\PhysicalServer.cs" />
+    <Compile Include="Impl\Consumer\ObjectFactoryLifetimeManager.cs" />
+    <Compile Include="Impl\Consumer\OutputBuffer.cs" />
+    <Compile Include="Impl\Consumer\PullingErrorManager.cs" />
+    <Compile Include="Impl\Consumer\QueueConsumer.cs" />
+    <Compile Include="Impl\Consumer\QueueManager.cs" />
+    <Compile Include="Impl\Consumer\ServerPool.cs" />
+    <Compile Include="Impl\Consumer\ServerUriManager.cs" />
+    <Compile Include="Impl\Consumer\SingleTask.cs" />
+    <Compile Include="Impl\Consumer\Thread.cs" />
+    <Compile Include="Impl\Consumer\ThreadPool.cs" />
+    <Compile Include="Impl\Consumer\TopicConsumer.cs" />
+    <Compile Include="Impl\Logg.cs" />
+    <Compile Include="Impl\Producer\Check\ProducerHealthCheck.cs" />
+    <Compile Include="Impl\Producer\Check\ProducerValidator.cs" />
+    <Compile Include="Impl\Producer\ConfigUtil.cs" />
+    <Compile Include="Impl\Producer\Metrics\ExceptionCountMetric.cs" />
+    <Compile Include="Impl\Producer\Metrics\RcvNackCountMetric.cs" />
+    <Compile Include="Impl\Producer\Metrics\SendCountMetric.cs" />
+    <Compile Include="Impl\Producer\Metrics\SendResponseCountMetric.cs" />
+    <Compile Include="Impl\Producer\Metrics\SyncCountMetric.cs" />
+    <Compile Include="Impl\Producer\ObjectFactoryLifetimeManager.cs" />
+    <Compile Include="Impl\Producer\ProducerFactory.cs" />
+    <Compile Include="Impl\Producer\ProducerTraceItems.cs" />
+    <Compile Include="Impl\Producer\V09\ChannelType.cs" />
+    <Compile Include="Impl\Producer\V09\CMessagingDictionary.cs" />
+    <Compile Include="Impl\Producer\V09\DefaultMessageChannel.cs" />
+    <Compile Include="Impl\Producer\V09\DefaultMessageChannelFactory.cs" />
+    <Compile Include="Impl\Producer\V09\DefaultMessageProducer.cs" />
+    <Compile Include="Impl\Producer\V09\ExceptionMessageProducer.cs" />
+    <Compile Include="Impl\Producer\V09\RemoteServerReader.cs" />
+    <Compile Include="Impl\Producer\V09\SettingsUtils.cs" />
+    <Compile Include="Impl\Producer\V10\ChannelBuffer.cs" />
+    <Compile Include="Impl\Producer\V10\DefaultClient.cs" />
+    <Compile Include="Impl\Producer\V10\DefaultServer.cs" />
+    <Compile Include="Impl\Producer\V10\IChannelBuffer.cs" />
+    <Compile Include="Impl\Producer\V10\IClient.cs" />
+    <Compile Include="Impl\Producer\V10\IServer.cs" />
+    <Compile Include="Impl\Producer\V10\MessageChannelConfiguration.cs" />
+    <Compile Include="Impl\Producer\V10\MessageChannelConfigurator.cs" />
+    <Compile Include="Impl\Producer\V10\MessageProducer.cs" />
+    <Compile Include="Impl\Producer\V10\MessageWriter.cs" />
+    <Compile Include="Impl\Producer\V10\ProducerChannel.cs" />
+    <Compile Include="Impl\Producer\V10\ProducerMessageReader.cs" />
+    <Compile Include="Impl\Version.cs" />
     <Compile Include="Net\Bootstrap.cs" />
     <Compile Include="Net\Core\Buffer\AbstractIoBuffer.cs" />
     <Compile Include="Net\Core\Buffer\Buffer.cs" />
@@ -611,11 +735,6 @@
     <Compile Include="Consumer\Engine\Notifier\IConsumerNotifier.cs" />
     <Compile Include="Consumer\Engine\Bootstrap\BrokerConsumerBootstrap.cs" />
     <Compile Include="Consumer\Engine\CompositeSubscribeHandle.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IBrokerConsumptionStrategyRegistry.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IBrokerConsumptionStrategy.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultBrokerConsumptionRegistry.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BrokerLongPollingConsumptionStrategy.cs" />
-    <Compile Include="Consumer\Engine\Bootstrap\Strategy\LongPollingConsumerTask.cs" />
     <Compile Include="Consumer\Engine\Lease\ConsumerLeaseManager.cs" />
     <Compile Include="Consumer\Engine\Config\ConsumerConfig.cs" />
     <Compile Include="Consumer\Engine\Monitor\IPullMessageResultMonitor.cs" />
@@ -750,6 +869,35 @@
     <Compile Include="Core\Utils\BlockingQueueExtension.cs" />
     <Compile Include="Transport\Command\CorrelationIdGenerator.cs" />
     <Compile Include="Core\Utils\JSON.cs" />
+    <Compile Include="Core\Message\Payload\RawMessage.cs" />
+    <Compile Include="Core\Message\Payload\AbstractPayloadCodec.cs" />
+    <Compile Include="Transport\Command\Processor\SingleThreaded.cs" />
+    <Compile Include="Core\Ioc\Utility\NamespaceList.cs" />
+    <Compile Include="Core\Config\ConsumerGroupSection.cs" />
+    <Compile Include="Consumer\Api\MessageListenerConfig.cs" />
+    <Compile Include="Consumer\Api\IMessageStream.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\BaseConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingRegistry.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\DefaultConsumingStrategyConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\StrictlyOrderedConsumingStrategy.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\StrictlyOrderedConsumingStrategyConsumerTask.cs" />
+    <Compile Include="Consumer\Engine\Lease\ConsumerLeaseKey.cs" />
+    <Compile Include="Consumer\Engine\Notifier\INotifyStrategy.cs" />
+    <Compile Include="Consumer\Engine\Notifier\DefaultNotifyStrategy.cs" />
+    <Compile Include="Consumer\Engine\Notifier\StrictlyOrderedNotifyStrategy.cs" />
+    <Compile Include="Core\Message\NackDelayedBrokerConsumerMessage.cs" />
+    <Compile Include="Consumer\Engine\Bootstrap\Strategy\IConsumingStrategyRegistry.cs" />
+    <Compile Include="Consumer\Engine\Monitor\DefaultQueryOffsetResultMonitor.cs" />
+    <Compile Include="Consumer\Engine\Monitor\IQueryOffsetResultMonitor.cs" />
+    <Compile Include="Consumer\Engine\Transport\Command\Processor\QueryOffsetResultCommandProcessor.cs" />
+    <Compile Include="Core\Bo\Offset.cs" />
+    <Compile Include="Core\Message\Retry\NoRetryPolicy.cs" />
+    <Compile Include="Transport\Command\QueryOffsetCommand.cs" />
+    <Compile Include="Transport\Command\QueryOffsetResultCommand.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -773,6 +921,7 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup />
   <ItemGroup />
   <ItemGroup />
 </Project>

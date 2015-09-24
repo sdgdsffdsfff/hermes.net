@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Arch.CMessaging.Client.Core.Collections;
 
 namespace Arch.CMessaging.Client.Net.Util
 {
@@ -24,7 +25,7 @@ namespace Arch.CMessaging.Client.Net.Util
         }
     }
 
-    class ConcurrentQueue<T> : System.Collections.Concurrent.ConcurrentQueue<T>, IQueue<T>
+    class ConcurrentQueue<T> : ThreadSafeQueue<T>, IQueue<T>  // System.Collections.Concurrent.ConcurrentQueue<T>, IQueue<T>
     {
         public T Dequeue()
         {

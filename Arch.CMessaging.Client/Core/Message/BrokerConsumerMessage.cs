@@ -9,7 +9,11 @@ namespace Arch.CMessaging.Client.Core.Message
 {
     public class BrokerConsumerMessage : IConsumerMessage, PropertiesHolderAware, BaseConsumerMessageAware
     {
+        public static DateTime EPOCH = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
         public BaseConsumerMessage BaseConsumerMessage{ get; private set; }
+
+        public bool AckWithForwardOnly { get; set; }
 
         public long MsgSeq{ get; set; }
 
@@ -25,6 +29,31 @@ namespace Arch.CMessaging.Client.Core.Message
 
         public IoSession Channel{ get; set; }
 
+        public int RetryTimesOfRetryPolicy{ get; set; }
+
+        public int ResendTimes
+        {
+            get
+            {
+                if (Resend)
+                {
+                    return RetryTimesOfRetryPolicy - BaseConsumerMessage.RemainingRetries + 1;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
+
+        public DateTime BornTimeUtc
+        { 
+            get
+            {
+                return EPOCH.Add(new TimeSpan(BornTime * TimeSpan.TicksPerMillisecond));
+            }
+        }
+
         public BrokerConsumerMessage(BaseConsumerMessage baseMsg)
         {
             this.BaseConsumerMessage = baseMsg;
@@ -34,12 +63,17 @@ namespace Arch.CMessaging.Client.Core.Message
         {
             if (BaseConsumerMessage.Nack())
             {
-                AckMessageCommand cmd = new AckMessageCommand();
+                AckMessageCommandV2 cmd = CreateAckCommand();
                 cmd.Header.CorrelationId = CorrelationId;
                 Tpp tpp = new Tpp(BaseConsumerMessage.Topic, Partition, Priority);
                 cmd.addNackMsg(tpp, GroupId, Resend, MsgSeq, BaseConsumerMessage.RemainingRetries, BaseConsumerMessage.OnMessageStartTimeMills, BaseConsumerMessage.OnMessageEndTimeMills);
                 Channel.Write(cmd);
             }
+        }
+
+        private AckMessageCommandV2 CreateAckCommand()
+        {
+            return AckWithForwardOnly ? new AckMessageCommandV2(AckMessageCommandV2.FORWARD_ONLY) : new AckMessageCommandV2(AckMessageCommandV2.NORMAL);
         }
 
         
@@ -83,7 +117,7 @@ namespace Arch.CMessaging.Client.Core.Message
         {
             if (BaseConsumerMessage.Ack())
             {
-                AckMessageCommand cmd = new AckMessageCommand();
+                AckMessageCommandV2 cmd = CreateAckCommand();
                 cmd.Header.CorrelationId = CorrelationId;
                 Tpp tpp = new Tpp(BaseConsumerMessage.Topic, Partition, Priority);
                 cmd.addAckMsg(tpp, GroupId, Resend, MsgSeq, BaseConsumerMessage.RemainingRetries, BaseConsumerMessage.OnMessageStartTimeMills, BaseConsumerMessage.OnMessageEndTimeMills);
@@ -114,6 +148,7 @@ namespace Arch.CMessaging.Client.Core.Message
             + Partition + ", m_priority=" + Priority + ", m_resend=" + Resend + ", m_groupId='" + GroupId
             + '\'' + ", m_correlationId=" + CorrelationId + ", m_channel=" + Channel + '}';
         }
+
     }
 }
 

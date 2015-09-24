@@ -29,7 +29,6 @@ namespace Arch.CMessaging.Client.Core.MetaService
         LeaseAcquireResponse TryRenewConsumerLease(Tpg tpg, ILease lease, string sessionId);
         List<SubscriptionView> ListSubscriptions();
         List<SchemaView> ListSchemas();
-        void Refresh();
         bool ContainsEndpoint(Endpoint endpoint);
         bool ContainsConsumerGroup(string topicName, string groupId);
     }

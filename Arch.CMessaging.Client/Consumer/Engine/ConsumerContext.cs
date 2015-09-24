@@ -1,5 +1,6 @@
 ﻿using System;
 using Arch.CMessaging.Client.MetaEntity.Entity;
+using Arch.CMessaging.Client.Consumer.Api;
 
 namespace Arch.CMessaging.Client.Consumer.Engine
 {
@@ -17,8 +18,10 @@ namespace Arch.CMessaging.Client.Consumer.Engine
 
         public String SessionId { get; private set; }
 
+        public MessageListenerConfig MessageListenerConfig { get; private set; }
+
         public ConsumerContext(Topic topic, String groupId, IMessageListener consumer, Type messageClazz,
-                               ConsumerType consumerType)
+                               ConsumerType consumerType, MessageListenerConfig messageListenerConfig)
         {
             Topic = topic;
             GroupId = groupId;
@@ -26,6 +29,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine
             MessageClazz = messageClazz;
             ConsumerType = consumerType;
             SessionId = Guid.NewGuid().ToString();
+            MessageListenerConfig = messageListenerConfig;
         }
     }
 }

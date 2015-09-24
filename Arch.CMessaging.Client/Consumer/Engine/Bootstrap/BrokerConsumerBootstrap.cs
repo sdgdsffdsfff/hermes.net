@@ -10,17 +10,18 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Bootstrap
     public class BrokerConsumerBootstrap : BaseConsumerBootstrap
     {
         [Inject]
-        private IBrokerConsumptionStrategyRegistry ConsumptionStrategyRegistry;
+        private IConsumingStrategyRegistry ConsumingStrategyRegistry;
 
         protected override ISubscribeHandle DoStart(ConsumerContext context)
         {
+
             CompositeSubscribeHandle handler = new CompositeSubscribeHandle();
 
             List<Partition> partitions = MetaService.ListPartitionsByTopic(context.Topic.Name);
+            IConsumingStrategy consumingStrategy = ConsumingStrategyRegistry.FindStrategy(context.ConsumerType);
             foreach (Partition partition in partitions)
             {
-                handler.AddSubscribeHandle(ConsumptionStrategyRegistry.FindStrategy(context.ConsumerType).Start(
-                        context, partition.ID));
+                handler.AddSubscribeHandle(consumingStrategy.Start(context, partition.ID));
             }
 
             return handler;

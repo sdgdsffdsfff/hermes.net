@@ -14,7 +14,7 @@ namespace Arch.CMessaging.Client.Transport.Command
         {
 
             public DummyCommand()
-                : base(CommandType.Dummy)
+                : base(CommandType.Dummy, 1)
             {
             }
 

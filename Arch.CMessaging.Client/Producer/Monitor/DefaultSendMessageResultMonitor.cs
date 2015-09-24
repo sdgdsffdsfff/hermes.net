@@ -17,6 +17,8 @@ using Arch.CMessaging.Client.Core.Utils;
 using Arch.CMessaging.Client.Producer.Sender;
 using Com.Dianping.Cat;
 using Com.Dianping.Cat.Message;
+using Arch.CMessaging.Client.MetaEntity.Entity;
+using Com.Dianping.Cat.Message.Internals;
 
 namespace Arch.CMessaging.Client.Producer.Monitor
 {
@@ -24,26 +26,19 @@ namespace Arch.CMessaging.Client.Producer.Monitor
     public class DefaultSendMessageResultMonitor : ISendMessageResultMonitor, IInitializable
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultSendMessageResultMonitor));
-        private ConcurrentDictionary<long, SendMessageCommand> commands = new ConcurrentDictionary<long, SendMessageCommand>();
+        private ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<bool>>> commands = new ConcurrentDictionary<long, Pair<SendMessageCommand, SettableFuture<bool>>>();
+        private long ticksOfLocalMinusUtc;
         private object syncRoot = new object();
-        private Timer timer;
-
-        [Inject]
-        private ISystemClockService systemClockService;
-
-        [Inject]
-        private ProducerConfig config;
 
         #region ISendMessageResultMonitor Members
 
-        public void Monitor(SendMessageCommand command)
+        public IFuture<bool> Monitor(SendMessageCommand command)
         {
-            if (command != null)
+            lock (syncRoot)
             {
-                lock (syncRoot)
-                {
-                    commands[command.Header.CorrelationId] = command;
-                }
+                SettableFuture<bool> future = SettableFuture<bool>.Create();
+                commands[command.Header.CorrelationId] = new Pair<SendMessageCommand, SettableFuture<bool>>(command, future);
+                return future;
             }
         }
 
@@ -51,20 +46,26 @@ namespace Arch.CMessaging.Client.Producer.Monitor
         {
             if (result != null)
             {
-                SendMessageCommand sendMessageCommand = null;
+                Pair<SendMessageCommand, SettableFuture<bool>> pair = null;
                 lock (syncRoot)
                 {
-                    var correlationId = result.Header.CorrelationId;
-                    if (commands.TryGetValue(correlationId, out sendMessageCommand))
-                    {
-                        SendMessageCommand oldCommand;
-                        commands.TryRemove(correlationId, out oldCommand);
-                    }
+                    commands.TryRemove(result.Header.CorrelationId, out pair);
                 }
-                if (sendMessageCommand != null)
+                if (pair != null)
                 {
+
                     try
                     {
+                        SendMessageCommand sendMessageCommand = pair.Key;
+                        SettableFuture<bool> future = pair.Value;
+                        if (IsResultSuccess(result))
+                        {
+                            future.Set(true);
+                        }
+                        else
+                        {
+                            future.Set(false);
+                        }
                         sendMessageCommand.OnResultReceived(result);
                         Tracking(sendMessageCommand, true);
                     }
@@ -76,10 +77,43 @@ namespace Arch.CMessaging.Client.Producer.Monitor
             }
         }
 
+        public void Cancel(SendMessageCommand cmd)
+        {
+            lock (syncRoot)
+            {
+                Pair<SendMessageCommand, SettableFuture<bool>> pair = null;
+                commands.TryRemove(cmd.Header.CorrelationId, out pair);
+            }
+        }
+
         #endregion
+
+        public void Initialize()
+        {
+            DateTime localNow = DateTime.Now;
+            DateTime utcNow = TimeZone.CurrentTimeZone.ToUniversalTime(localNow);
+            ticksOfLocalMinusUtc = localNow.Ticks - utcNow.Ticks;
+        }
+
+        private bool IsResultSuccess(SendMessageResultCommand result)
+        {
+            Dictionary<int, bool> successes = result.Successes;
+            foreach (bool success in successes.Values)
+            {
+                if (!success)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         private void Tracking(SendMessageCommand sendMessageCommand, bool success)
         {
+
+            string status = success ? CatConstants.SUCCESS : "Timeout";
+
             foreach (List<ProducerMessage> msgs in sendMessageCommand.ProducerMessages)
             {
                 foreach (ProducerMessage msg in msgs)
@@ -95,82 +129,20 @@ namespace Arch.CMessaging.Client.Producer.Monitor
                     tree.ParentMessageId = parentMsgId;
                     tree.RootMessageId = rootMsgId;
 
-                    t.Status = success ? CatConstants.SUCCESS : "Timeout";
+                    ITransaction elapseT = Cat.NewTransaction("Message.Produce.Elapse", msg.Topic);
+                    if (elapseT is DefaultTransaction)
+                    {
+                        // cat needs local mill of ticks
+                        ((DefaultTransaction)elapseT).Timestamp = (ticksOfLocalMinusUtc + TimeExtension.UnixTimestampToTicks(msg.BornTime)) / TimeSpan.TicksPerMillisecond;
+                        elapseT.AddData("command.message.count", sendMessageCommand.MessageCount);
+                    }
+                    elapseT.Status = status;
+                    elapseT.Complete();
+
+                    t.Status = status;
                     t.Complete();
                 }
-            }
-        }
 
-        #region IInitializable Members
-
-        public void Initialize()
-        {
-            timer = new Timer(TimeoutCheck, null, 5, Timeout.Infinite);
-        }
-
-        #endregion
-
-        private void TimeoutCheck(object state)
-        {
-            timer.Change(Timeout.Infinite, Timeout.Infinite);
-            try
-            {
-                ScanAndResendTimeoutCommands();
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex);
-            }
-            finally
-            {
-                timer.Change(5, Timeout.Infinite);
-            }
-        }
-
-        protected void ScanAndResendTimeoutCommands()
-        {
-            List<SendMessageCommand> timeoutCmds = ScanTimeoutCommands();
-
-            if (timeoutCmds.Count != 0)
-            {
-                resend(timeoutCmds);
-            }
-        }
-
-        protected List<SendMessageCommand> ScanTimeoutCommands()
-        {
-            List<SendMessageCommand> timeoutCmds = new List<SendMessageCommand>();
-            lock (syncRoot)
-            {
-                foreach (KeyValuePair<long, SendMessageCommand> entry in commands)
-                {
-                    SendMessageCommand cmd = entry.Value;
-                    long correlationId = entry.Key;
-                    if (cmd.isExpired(systemClockService.Now(), config.SendMessageReadResultTimeoutMillis))
-                    {
-                        SendMessageCommand oldCmd;
-                        commands.TryRemove(correlationId, out oldCmd);
-                        timeoutCmds.Add(cmd);
-                    }
-                }
-            }
-            return timeoutCmds;
-        }
-
-        protected void resend(List<SendMessageCommand> timeoutCmds)
-        {
-            foreach (SendMessageCommand cmd in timeoutCmds)
-            {
-                List<Pair<ProducerMessage, SettableFuture<SendResult>>> msgFuturePairs = cmd
-                    .GetProducerMessageFuturePairs();
-                foreach (Pair<ProducerMessage, SettableFuture<SendResult>> pair in msgFuturePairs)
-                {
-                    IMessageSender sender = ComponentLocator.Lookup<IMessageSender>();
-                    if (sender != null)
-                    {
-                        sender.Resend(pair.Key, pair.Value);
-                    }
-                }
             }
         }
     }

@@ -43,19 +43,47 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
 
         public void UpdateMetaServerList()
         {
-            if (CollectionUtil.IsNullOrEmpty(metaServerListRef.ReadFullFence()))
+
+            int maxTries = 10;
+            Exception exception = null;
+
+            for (int i = 0; i < maxTries; i++)
             {
-                metaServerListRef.WriteFullFence(DomainToIpPorts());
+                try
+                {
+                    if (CollectionUtil.IsNullOrEmpty(metaServerListRef.ReadFullFence()))
+                    {
+                        metaServerListRef.WriteFullFence(DomainToIpPorts());
+                    }
+
+                    List<String> metaServerList = FetchMetaServerListFromExistingMetaServer();
+                    if (metaServerList != null && metaServerList.Count > 0)
+                    {
+                        metaServerListRef.WriteFullFence(metaServerList);
+                        return;
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+
+                Thread.Sleep(1000);
             }
 
-            metaServerListRef.WriteFullFence(FetchMetaServerListFromExistingMetaServer());
+            if (exception != null)
+            {
+                log.Warn(String.Format("Failed to fetch meta server list for {0} times", maxTries));
+                throw exception;
+            }
+
         }
 
-        private List<String> FetchMetaServerListFromExistingMetaServer()
+        private List<string> FetchMetaServerListFromExistingMetaServer()
         {
-            List<String> metaServerList = metaServerListRef.ReadFullFence();
-            log.Debug(string.Format("Start fetching meta server ip from meta servers {0}", metaServerList));
-
+            List<string> metaServerList = new List<string>(metaServerListRef.ReadFullFence());
+            metaServerList.Shuffle();
 
             foreach (String ipPort in metaServerList)
             {
@@ -77,7 +105,7 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
 
         private List<string> DomainToIpPorts()
         {
-            string domain = GetMetaServerDomainName();
+            string domain = clientEnv.getMetaServerDomainName();
             log.Info(string.Format("Meta server domain {0}", domain));
             try
             {
@@ -131,31 +159,6 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
                     throw new Exception(string.Format("HTTP code is {0} when fetch meta server list"));
                 }
             }
-        }
-
-        private string GetMetaServerDomainName()
-        {
-            Arch.CMessaging.Client.Core.Env.Env env = clientEnv.GetEnv();
-
-            switch (env)
-            {
-                case Arch.CMessaging.Client.Core.Env.Env.LOCAL:
-                    return "meta.hermes.local";
-                case Arch.CMessaging.Client.Core.Env.Env.DEV:
-                    return "10.3.8.63";
-                case Arch.CMessaging.Client.Core.Env.Env.LPT:
-                    return "10.3.8.63";
-                case Arch.CMessaging.Client.Core.Env.Env.FWS:
-                    return "meta.hermes.fws.qa.nt.ctripcorp.com";
-                case Arch.CMessaging.Client.Core.Env.Env.UAT:
-                    return "meta.hermes.fx.uat.qa.nt.ctripcorp.com";
-                case Arch.CMessaging.Client.Core.Env.Env.PROD:
-                    return "meta.hermes.fx.ctripcorp.com";
-
-                default:
-                    throw new Exception(string.Format("Unknown hermes env {0}", env));
-            }
-
         }
 
         public void Initialize()

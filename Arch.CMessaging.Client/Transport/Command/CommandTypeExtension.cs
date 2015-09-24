@@ -15,17 +15,17 @@ namespace Arch.CMessaging.Client.Transport.Command
             return Convert.ToInt32(commandType);
         }
 
-        public static CommandType? ToCommandType(this int type)
+        public static CommandType? ToCommandType(this int type, int version)
         {
-            CommandType commandType = CommandTypeToCommand.FindCommandInfoByCode(type).Key;
+            CommandType commandType = CommandTypeToCommand.FindCommandInfoByCode(type, version).Key;
             return commandType;
         }
 
-        public static ICommand ToCommand(this CommandType? commandType)
+        public static ICommand ToCommand(this CommandType? commandType, int version)
         {
             ICommand command = null;
             var val = commandType.ToInt();
-            Type type = CommandTypeToCommand.FindCommandInfoByCode(val).Value;
+            Type type = CommandTypeToCommand.FindCommandInfoByCode(val, version).Value;
             command = Activator.CreateInstance(type) as ICommand;
             return command;
         }

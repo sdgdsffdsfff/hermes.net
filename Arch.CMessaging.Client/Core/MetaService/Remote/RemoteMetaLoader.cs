@@ -31,11 +31,14 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
 
         public Meta Load()
         {
-            List<string> ipPorts = metaServerLocator.GetMetaServerList();
-            if (ipPorts == null || ipPorts.Count == 0)
+            List<string> metaServerList = metaServerLocator.GetMetaServerList();
+            if (metaServerList == null || metaServerList.Count == 0)
             {
                 throw new Exception("No meta server found.");
             }
+
+            List<String> ipPorts = new List<String>(metaServerList);
+            ipPorts.Shuffle();
 
             foreach (string ipPort in ipPorts)
             {

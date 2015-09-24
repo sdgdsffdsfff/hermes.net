@@ -12,6 +12,8 @@ using Arch.CMessaging.Client.Core.Utils;
 using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Core.Ioc;
 using Arch.CMessaging.Client.Consumer.Build;
+using Arch.CMessaging.Client.Consumer.Api;
+using Arch.CMessaging.Client.MetaEntity.Entity;
 
 namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
 {
@@ -20,7 +22,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultConsumerNotifier));
 
-        private ConcurrentDictionary<long, Pair<ConsumerContext, ProducerConsumer<Action>>> consumerContexs = new ConcurrentDictionary<long, Pair<ConsumerContext, ProducerConsumer<Action>>>();
+        private ConcurrentDictionary<long, Triple<ConsumerContext, INotifyStrategy, ProducerConsumer<Action>>> consumerContexs = new ConcurrentDictionary<long, Triple<ConsumerContext, INotifyStrategy, ProducerConsumer<Action>>>();
 
         [Inject(BuildConstants.CONSUMER)]
         private IPipeline<object> pipeline;
@@ -40,11 +42,27 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
             {
                 int threadCount = Convert.ToInt32(clientEnv.GetConsumerConfig(context.Topic.Name).GetProperty(
                                           "consumer.notifier.threadcount", config.DefaultNotifierThreadCount));
-                ProducerConsumer<Action> threadPool = new ProducerConsumer<Action>(int.MaxValue, threadCount);
+
+                BlockingQueue<Action> blockingQueue = new TransferBlockingQueue<Action>(threadCount);
+                ProducerConsumer<Action> threadPool = new ProducerConsumer<Action>(blockingQueue, threadCount);
+
                 threadPool.OnConsume += DispatchMessages;
 
-                var pair = new Pair<ConsumerContext, ProducerConsumer<Action>>(context, threadPool);
-                consumerContexs.TryAdd(correlationId, pair);
+
+                MessageListenerConfig messageListenerConfig = context.MessageListenerConfig;
+                INotifyStrategy notifyStrategy = null;
+                if (!Storage.KAFKA.Equals(context.Topic.StorageType)//
+                    && messageListenerConfig.StrictlyOrdering)
+                {
+                    notifyStrategy = new StrictlyOrderedNotifyStrategy(messageListenerConfig.GetStrictlyOrderingRetryPolicy());
+                }
+                else
+                {
+                    notifyStrategy = new DefaultNotifyStrategy();
+                }
+
+                consumerContexs.TryAdd(correlationId, new Triple<ConsumerContext, INotifyStrategy, ProducerConsumer<Action>>(
+                        context, notifyStrategy, threadPool));
             }
             catch (Exception e)
             {
@@ -54,10 +72,10 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
 
         public void Deregister(long correlationId)
         {
-            Pair<ConsumerContext, ProducerConsumer<Action>> pair = null;
-            consumerContexs.TryRemove(correlationId, out pair);
-            ConsumerContext context = pair.Key;
-            pair.Value.Shutdown();
+            Triple<ConsumerContext, INotifyStrategy, ProducerConsumer<Action>> triple = null;
+            consumerContexs.TryRemove(correlationId, out triple);
+            ConsumerContext context = triple.First;
+            triple.Last.Shutdown();
             return;
         }
 
@@ -69,9 +87,10 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
 
         public void MessageReceived(long correlationId, List<IConsumerMessage> msgs)
         {
-            Pair<ConsumerContext, ProducerConsumer<Action>> pair = consumerContexs[correlationId];
-            ConsumerContext context = pair.Key;
-            ProducerConsumer<Action> executorService = pair.Value;
+            Triple<ConsumerContext, INotifyStrategy, ProducerConsumer<Action>> triple = consumerContexs[correlationId];
+            ConsumerContext context = triple.First;
+            INotifyStrategy notifyStrategy = triple.Middle;
+            ProducerConsumer<Action> executorService = triple.Last;
 
             executorService.Produce(delegate
                 {
@@ -87,7 +106,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
                             }
                         }
 
-                        pipeline.Put(new Pair<ConsumerContext, List<IConsumerMessage>>(context, msgs));
+                        notifyStrategy.Notify(msgs, context, executorService, pipeline);
                     }
                     catch (Exception e)
                     {
@@ -100,9 +119,23 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Notifier
 
         public ConsumerContext Find(long correlationId)
         {
-            Pair<ConsumerContext, ProducerConsumer<Action>> pair = null;
-            consumerContexs.TryGetValue(correlationId, out pair);
-            return pair == null ? null : pair.Key;
+            Triple<ConsumerContext, INotifyStrategy, ProducerConsumer<Action>> triple = null;
+            consumerContexs.TryGetValue(correlationId, out triple);
+            return triple == null ? null : triple.First;
+        }
+    }
+
+    public class TransferBlockingQueue<TItem> : BlockingQueue<TItem>
+    {
+        public TransferBlockingQueue(int capacity)
+            : base(capacity)
+        {
+        }
+
+        public override bool Offer(TItem item)
+        {
+            // -1 means not timeout
+            return Put(item, -1);
         }
     }
 }

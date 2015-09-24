@@ -1,24 +1,38 @@
 ﻿using System;
 using Arch.CMessaging.Client.Core.Ioc;
+using Arch.CMessaging.Client.Core.Env;
 
 namespace Arch.CMessaging.Client.Consumer.Engine.Config
 {
     [Named(ServiceType = typeof(ConsumerConfig))]
     public class ConsumerConfig
     {
-        public String DefautlLocalCacheSize
-        { 
-            get { return "50"; }
+        public const int DEFAULT_LOCALCACHE_SIZE = 10;
+
+        [Inject]
+        private IClientEnvironment clientEnv;
+
+        public int GetLocalCacheSize(String topic)
+        {
+            string localCacheSizeStr = clientEnv.GetConsumerConfig(topic).GetProperty("consumer.localcache.size");
+            if (string.IsNullOrWhiteSpace(localCacheSizeStr))
+            {
+                return DEFAULT_LOCALCACHE_SIZE;
+            }
+            else
+            {
+                return Convert.ToInt32(localCacheSizeStr);
+            }
         }
 
         public long RenewLeaseTimeMillisBeforeExpired
         { 
-            get { return 2 * 1000L; }
+            get { return 5 * 1000L; }
         }
 
         public long StopConsumerTimeMillsBeforLeaseExpired
         { 
-            get { return 500L; }
+            get { return RenewLeaseTimeMillisBeforeExpired - 3 * 1000L; }
         }
 
         public long DefaultLeaseAcquireDelayMillis
@@ -31,19 +45,34 @@ namespace Arch.CMessaging.Client.Consumer.Engine.Config
             get { return 500L; }
         }
 
-        public String DefaultLocalCachePrefetchThresholdPercentage
-        { 
-            get { return "30"; }
-        }
-
-        public int NoMessageWaitIntervalMillis
+        public int NoMessageWaitBaseMillis
         {
             get { return 50; }
         }
 
-        public int NoEndpointWaitIntervalMillis
+        public int NoMessageWaitMaxMillis
         {
             get { return 500; }
+        }
+
+        public int NoEndpointWaitBaseMillis
+        {
+            get { return 500; }
+        }
+
+        public int NoEndpointWaitMaxMillis
+        {
+            get { return 4000; }
+        }
+
+        public int PullMessageBrokerExpireTimeAdjustmentMills
+        {
+            get { return -500; }
+        }
+
+        public int QueryOffsetTimeoutMillis
+        {
+            get { return 3000; }
         }
 
         public String DefaultNotifierThreadCount

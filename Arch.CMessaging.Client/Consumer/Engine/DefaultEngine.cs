@@ -19,63 +19,68 @@ namespace Arch.CMessaging.Client.Consumer.Engine
         [Inject]
         private IMetaService metaService;
 
-        public override ISubscribeHandle Start(List<Subscriber> subscribers)
+        public override ISubscribeHandle Start(Subscriber subscriber)
         {
             CompositeSubscribeHandle handle = new CompositeSubscribeHandle();
 
-            foreach (Subscriber s in subscribers)
+            List<Topic> topics = metaService.ListTopicsByPattern(subscriber.TopicPattern);
+
+            if (topics == null || topics.Count == 0)
             {
-                List<Topic> topics = metaService.ListTopicsByPattern(s.TopicPattern);
+                throw new Exception(string.Format("Can not find any topics matching pattern {0}", subscriber.TopicPattern));
+            }
 
-                if (topics != null && topics.Count != 0)
+            log.Info(string.Format("Found topics({0}) matching pattern({1}), groupId={2}.",
+                    string.Join(",", topics.ConvertAll(t => t.Name)), subscriber.TopicPattern, subscriber.GroupId));
+
+            Validate(topics, subscriber.GroupId);
+
+            foreach (Topic topic in topics)
+            {
+                ConsumerContext context = new ConsumerContext(topic, subscriber.GroupId, subscriber.Consumer,
+                                              subscriber.Consumer.MessageType(), subscriber.ConsumerType, subscriber.MessageListenerConfig);
+
+                try
                 {
-                    log.Info(string.Format("Found topics({0}) matching pattern({1}), groupId={2}.",
-                            string.Join(",", topics.ConvertAll(t => t.Name)), s.TopicPattern, s.GroupId));
+                    IConsumerBootstrap consumerBootstrap = consumerManager.FindConsumerBootStrap(topic);
+                    handle.AddSubscribeHandle(consumerBootstrap.Start(context));
 
-                    foreach (Topic topic in topics)
-                    {
-                        ConsumerContext context = new ConsumerContext(topic, s.GroupId, s.Consumer, s.Consumer.MessageType(), s.ConsumerType);
-
-                        if (Validate(topic, context))
-                        {
-                            try
-                            {
-                                String endpointType = metaService.FindEndpointTypeByTopic(topic.Name);
-                                IConsumerBootstrap consumerBootstrap = consumerManager.FindConsumerBootStrap(endpointType);
-                                handle.AddSubscribeHandle(consumerBootstrap.Start(context));
-
-                            }
-                            catch (Exception e)
-                            {
-                                log.Error(string.Format("Failed to start consumer for topic {0}(consumer: groupId={1}, sessionId={2})",
-                                        topic.Name, context.GroupId, context.SessionId), e);
-                            }
-                        }
-                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    log.Error(string.Format("Can not find any topics matching pattern {0}", s.TopicPattern));
+                    log.Error(string.Format("Failed to start consumer for topic {0}(consumer: groupId={1}, sessionId={2})",
+                            topic.Name, context.GroupId, context.SessionId), e);
+                    throw e;
                 }
             }
 
             return handle;
         }
 
-        private bool Validate(Topic topic, ConsumerContext context)
+        private void Validate(List<Topic> topics, string groupId)
         {
-            if (Endpoint.BROKER.Equals(topic.EndpointType))
+            List<string> failedTopics = new List<string>();
+            bool hasError = false;
+
+            foreach (Topic topic in topics)
             {
-                if (!metaService.ContainsConsumerGroup(topic.Name, context.GroupId))
+                if (Endpoint.BROKER.Equals(topic.EndpointType))
                 {
-                    log.Error(string.Format("Consumer group {0} not found for topic {1}, please add consumer group in Hermes-Portal first.",
-                            context.GroupId, topic.Name));
-                    return false;
+                    if (!metaService.ContainsConsumerGroup(topic.Name, groupId))
+                    {
+                        failedTopics.Add(topic.Name);
+                        hasError = true;
+                    }
                 }
             }
 
-            return true;
+            if (hasError)
+            {
+                throw new Exception(string.Format("Consumer group {0} not found for topics ({1}), please add consumer group in Hermes-Portal first.", groupId, failedTopics));
+            }
+
         }
+
     }
 }
 

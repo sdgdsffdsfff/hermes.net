@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Arch.CMessaging.Client.Net.Core.Buffer;
+using Arch.CMessaging.Client.Core.Bo;
 
 namespace Arch.CMessaging.Client.Core.Utils
 {
@@ -11,6 +12,7 @@ namespace Arch.CMessaging.Client.Core.Utils
     {
         private IoBuffer buf;
         private const byte NULL_VALUE = 255;
+
         public HermesPrimitiveCodec(IoBuffer buf)
         {
             this.buf = buf;
@@ -41,7 +43,8 @@ namespace Arch.CMessaging.Client.Core.Utils
         public byte[] ReadBytes()
         {
             var firstByte = buf.Get();
-            if (firstByte == NULL_VALUE) return null;
+            if (firstByte == NULL_VALUE)
+                return null;
             else
             {
                 ReadIndexBack(buf, 1);
@@ -64,7 +67,8 @@ namespace Arch.CMessaging.Client.Core.Utils
         public Dictionary<string, string> ReadStringStringMap()
         {
             var firstByte = buf.Get();
-            if (firstByte == NULL_VALUE) return null;
+            if (firstByte == NULL_VALUE)
+                return null;
             else
             {
                 ReadIndexBack(buf, 1);
@@ -72,7 +76,7 @@ namespace Arch.CMessaging.Client.Core.Utils
                 Dictionary<string, string> result = new Dictionary<string,string>();
                 if (length > 0)
                 {
-                    for(var i = 0; i < length; i++)
+                    for (var i = 0; i < length; i++)
                         result[ReadString()] = ReadString();
                 }
                 return result;
@@ -82,40 +86,43 @@ namespace Arch.CMessaging.Client.Core.Utils
         public Dictionary<long, int> ReadLongIntMap()
         {
             var firstByte = buf.Get();
-		    if (firstByte == NULL_VALUE) return null;    
-		    else
+            if (firstByte == NULL_VALUE)
+                return null;
+            else
             {
-			    ReadIndexBack(buf, 1);
-			    var length = buf.GetInt32();
-			    Dictionary<long, int> result = new Dictionary<long, int>();
-			    if (length > 0) 
+                ReadIndexBack(buf, 1);
+                var length = buf.GetInt32();
+                Dictionary<long, int> result = new Dictionary<long, int>();
+                if (length > 0)
                 {
-				    for (int i = 0; i < length; i++) {
-					    result[ReadLong()] = ReadInt();
-				    }
-			    }
-			    return result;
-		    }
+                    for (int i = 0; i < length; i++)
+                    {
+                        result[ReadLong()] = ReadInt();
+                    }
+                }
+                return result;
+            }
         }
 
         public Dictionary<int, bool> ReadIntBooleanMap()
         {
             var firstByte = buf.Get();
-		    if (firstByte == NULL_VALUE) return null;
-			else 
+            if (firstByte == NULL_VALUE)
+                return null;
+            else
             {
                 ReadIndexBack(buf, 1);
-			    int length = buf.GetInt32();
+                int length = buf.GetInt32();
                 Dictionary<int, bool> result = new Dictionary<int, bool>();
-			    if (length > 0)
+                if (length > 0)
                 {
-				    for (int i = 0; i < length; i++) 
+                    for (int i = 0; i < length; i++)
                     {
-					    result[ReadInt()] = ReadBoolean();
-				    }
-			    }
-			    return result;
-		    }
+                        result[ReadInt()] = ReadBoolean();
+                    }
+                }
+                return result;
+            }
         }
 
         public void WriteBoolean(bool b)
@@ -125,8 +132,9 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public void WriteBytes(byte[] bytes)
         {
-            if (null == bytes) WriteNull();
-            else 
+            if (null == bytes)
+                WriteNull();
+            else
             {
                 var length = bytes.Length;
                 buf.PutInt32(length);
@@ -136,7 +144,8 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public void WriteBytes(IoBuffer buf)
         {
-            if (null == buf) WriteNull();
+            if (null == buf)
+                WriteNull();
             else
             {
                 buf.Flip();
@@ -163,7 +172,8 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public void WriteString(string val)
         {
-            if (string.IsNullOrEmpty(val)) WriteNull();
+            if (string.IsNullOrEmpty(val))
+                WriteNull();
             else
             {
                 var bytes = Encoding.UTF8.GetBytes(val);
@@ -175,7 +185,8 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public void WriteStringStringMap(Dictionary<string, string> map)
         {
-            if (null == map) WriteNull();
+            if (null == map)
+                WriteNull();
             else
             {
                 buf.PutInt32(map.Count);
@@ -192,7 +203,8 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public void WriteLongIntMap(Dictionary<long, int> map)
         {
-            if (null == map) WriteNull();
+            if (null == map)
+                WriteNull();
             else
             {
                 buf.PutInt32(map.Count);
@@ -209,7 +221,8 @@ namespace Arch.CMessaging.Client.Core.Utils
 
         public void WriteIntBooleanMap(Dictionary<int, bool> map)
         {
-            if (null == map) WriteNull();
+            if (null == map)
+                WriteNull();
             else
             {
                 buf.PutInt32(map.Count);
@@ -229,12 +242,48 @@ namespace Arch.CMessaging.Client.Core.Utils
             buf.Put(NULL_VALUE);
         }
 
-        public IoBuffer GetBuffer() { return buf; }
+        public IoBuffer GetBuffer()
+        {
+            return buf;
+        }
 
         private void ReadIndexBack(IoBuffer buf, int i)
         {
             if (buf.Position - i >= 0)
                 buf.Position = buf.Position - i;
+        }
+
+        public Offset ReadOffset()
+        {
+            byte firstByte = buf.Get();
+            if (NULL_VALUE == firstByte)
+            {
+                return null;
+            }
+            else
+            {
+                ReadIndexBack(buf, 1);
+                long pOff = ReadLong();
+                long npOff = ReadLong();
+                DateTime rDate = new DateTime(ReadLong());
+                long rOff = ReadLong();
+                return new Offset(pOff, npOff, new Pair<DateTime, long>(rDate, rOff));
+            }
+        }
+
+        public void WriteOffset(Offset offset)
+        {
+            if (offset == null)
+            {
+                WriteNull();
+            }
+            else
+            {
+                WriteLong(offset.PriorityOffset);
+                WriteLong(offset.NonPriorityOffset);
+                WriteLong(offset.ResendOffset.Key.CurrentTimeMillis());
+                WriteLong(offset.ResendOffset.Value);
+            }
         }
     }
 }

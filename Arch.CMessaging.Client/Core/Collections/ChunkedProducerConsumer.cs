@@ -26,6 +26,7 @@ namespace Arch.CMessaging.Client.Core.Collections
         {
             this.maxCountOneChunk = maxCountOneChunk;
             this.blockingQueue = new ChunkedNotifyQueue<TItem>(capacity, reachCountToNotify, timeoutToNotify);
+            base.StartPolling();
         }
 
         protected override ChunkedNotifyQueue<TItem> BlockingQueue

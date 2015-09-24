@@ -64,6 +64,7 @@ namespace Arch.CMessaging.Client.Consumer.Api
                         Cat.LogError(e);
                         t.SetStatus(e);
                         log.Error("Exception occurred while calling onMessage.", e);
+                        msg.Nack();
                     }
                     finally
                     {

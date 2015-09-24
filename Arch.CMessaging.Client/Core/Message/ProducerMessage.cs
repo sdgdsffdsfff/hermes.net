@@ -15,6 +15,7 @@ namespace Arch.CMessaging.Client.Core.Message
         {
             this.Topic = topic;
             this.body = body;
+            WithHeader = true;
             this.PropertiesHolder = new PropertiesHolder();
         }
 
@@ -31,6 +32,8 @@ namespace Arch.CMessaging.Client.Core.Message
         public string Key { get; set; }
 
         public long BornTime { get; set; }
+
+        public bool WithHeader { get; set; }
 
         public ICompletionCallback<SendResult> Callback { get; set; }
 

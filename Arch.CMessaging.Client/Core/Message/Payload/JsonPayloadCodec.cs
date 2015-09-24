@@ -11,18 +11,18 @@ using Arch.CMessaging.Client.Core.Ioc;
 namespace Arch.CMessaging.Client.Core.Message.Payload
 {
     [Named(ServiceType = typeof(IPayloadCodec), ServiceName = Arch.CMessaging.Client.MetaEntity.Entity.Codec.JSON)]
-    public class JsonPayloadCodec : IPayloadCodec
+    public class JsonPayloadCodec : AbstractPayloadCodec
     {
         #region IPayloadCodec Members
 
-        public string Type { get { return Arch.CMessaging.Client.MetaEntity.Entity.Codec.JSON; } }
+        public override string Type { get { return Arch.CMessaging.Client.MetaEntity.Entity.Codec.JSON; } }
 
-        public byte[] Encode(string topic, object obj)
+        protected override byte[] DoEncode(string topic, object obj)
         {
             return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj));
         }
 
-        public object Decode(byte[] raw, Type type)
+        protected override object DoDecode(byte[] raw, Type type)
         {
             return JSON.DeserializeObject(raw, type);
         }

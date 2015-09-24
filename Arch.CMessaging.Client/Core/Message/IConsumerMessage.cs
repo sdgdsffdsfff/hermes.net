@@ -21,6 +21,8 @@ namespace Arch.CMessaging.Client.Core.Message
 
         long BornTime{ get; }
 
+        DateTime BornTimeUtc{ get; }
+
         string Topic{ get; }
 
         string RefKey { get; }
@@ -30,6 +32,8 @@ namespace Arch.CMessaging.Client.Core.Message
         string Status{ get; }
 
         void Ack();
+
+        int ResendTimes{ get; }
     }
 }
 

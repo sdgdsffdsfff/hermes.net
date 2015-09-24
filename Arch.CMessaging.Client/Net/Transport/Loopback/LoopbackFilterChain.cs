@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using Arch.CMessaging.Client.Core.Collections;
 using Arch.CMessaging.Client.Net.Core.Buffer;
 using Arch.CMessaging.Client.Net.Core.Filterchain;
 using Arch.CMessaging.Client.Net.Core.Service;
@@ -12,7 +13,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Loopback
 {
     class LoopbackFilterChain : VirtualDefaultIoFilterChain
     {
-        private readonly ConcurrentQueue<IoEvent> _eventQueue = new ConcurrentQueue<IoEvent>();
+        private readonly ThreadSafeQueue<IoEvent> _eventQueue = new ThreadSafeQueue<IoEvent>();
         private readonly IoProcessor<LoopbackSession> _processor;
         private volatile Boolean _flushEnabled;
         private volatile Boolean sessionOpened;
@@ -272,7 +273,7 @@ namespace Arch.CMessaging.Client.Net.Transport.Loopback
             {
                 if (!session.ReadSuspended)
                 {
-                    ConcurrentQueue<Object> queue = session.ReceivedMessageQueue;
+                    ThreadSafeQueue<Object> queue = session.ReceivedMessageQueue;
                     Object item;
                     while (queue.TryDequeue(out item))
                     {

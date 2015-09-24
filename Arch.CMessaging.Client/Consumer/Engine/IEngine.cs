@@ -7,7 +7,7 @@ namespace Arch.CMessaging.Client.Consumer.Engine
 {
     public abstract class IEngine
     {
-        public abstract ISubscribeHandle Start(List<Subscriber> subscribers);
+        public abstract ISubscribeHandle Start(Subscriber subscribers);
 
         public static IEngine GetInstance()
         {

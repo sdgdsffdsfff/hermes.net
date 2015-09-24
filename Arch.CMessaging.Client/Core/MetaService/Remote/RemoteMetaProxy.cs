@@ -112,55 +112,104 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
 
         delegate string httpTo(string ipPort);
 
+        private string Get(string path, Dictionary<string, string> requestParams)
+        {
+            return PollMetaServer((ipPort) =>
+                {
+
+                    try
+                    {
+                        UriBuilder uriBuilder = new UriBuilder("http://" + ipPort);
+                        uriBuilder.Path = path;
+
+                        var query = HttpUtility.ParseQueryString(string.Empty);
+                        if (requestParams != null)
+                        {
+                            foreach (KeyValuePair<string, string> pair in requestParams)
+                            {
+                                query[pair.Key] = pair.Value;
+                            }
+                        }
+                        uriBuilder.Query = query.ToString();
+
+                        HttpWebRequest req = (HttpWebRequest)WebRequest.Create(uriBuilder.ToString());
+                        req.Method = "GET";
+                        req.Timeout = mconfig.MetaServerConnectTimeoutInMills + mconfig.MetaServerReadTimeoutInMills;
+
+                        using (HttpWebResponse res = (HttpWebResponse)req.BetterGetResponse())
+                        {
+                            HttpStatusCode statusCode = res.StatusCode;
+                            if (statusCode == HttpStatusCode.OK)
+                            {
+                                using (var stream = new StreamReader(res.GetResponseStream(), Encoding.UTF8))
+                                {
+                                    return stream.ReadToEnd();
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    return null;
+
+                });
+        }
+
         private String Post(string path, Dictionary<string, string> requestParams, Object payload)
         {
             return PollMetaServer((ipPort) =>
                 {
-                    UriBuilder uriBuilder = new UriBuilder("http://" + ipPort);
-                    uriBuilder.Path = path;
-
-                    var query = HttpUtility.ParseQueryString(string.Empty);
-                    if (requestParams != null)
+                    try
                     {
-                        foreach (KeyValuePair<string, string> pair in requestParams)
+                        UriBuilder uriBuilder = new UriBuilder("http://" + ipPort);
+                        uriBuilder.Path = path;
+
+                        var query = HttpUtility.ParseQueryString(string.Empty);
+                        if (requestParams != null)
                         {
-                            query[pair.Key] = pair.Value;
-                        }
-                    }
-                    uriBuilder.Query = query.ToString();
-
-                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create(uriBuilder.ToString());
-                    req.Method = "POST";
-                    req.Timeout = mconfig.MetaServerConnectTimeoutInMills + mconfig.MetaServerReadTimeoutInMills;
-
-                    if (payload != null)
-                    {
-                        req.ContentType = "application/json";
-
-                        byte[] payloadJson = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
-                        req.ContentLength = payloadJson.Length;
-                        using (Stream reqStream = req.GetRequestStream())
-                        {
-                            reqStream.Write(payloadJson, 0, payloadJson.Length);
-                        }
-                    }
-
-                    using (HttpWebResponse res = (HttpWebResponse)req.BetterGetResponse())
-                    {
-
-                        HttpStatusCode statusCode = res.StatusCode;
-                        if (statusCode == HttpStatusCode.OK)
-                        {
-                            using (var stream = new StreamReader(res.GetResponseStream(), Encoding.UTF8))
+                            foreach (KeyValuePair<string, string> pair in requestParams)
                             {
-                                return stream.ReadToEnd();
+                                query[pair.Key] = pair.Value;
                             }
                         }
-                        else
+                        uriBuilder.Query = query.ToString();
+
+                        HttpWebRequest req = (HttpWebRequest)WebRequest.Create(uriBuilder.ToString());
+                        req.Method = "POST";
+                        req.Timeout = mconfig.MetaServerConnectTimeoutInMills + mconfig.MetaServerReadTimeoutInMills;
+
+                        if (payload != null)
                         {
-                            return null;
+                            req.ContentType = "application/json";
+
+                            byte[] payloadJson = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
+                            req.ContentLength = payloadJson.Length;
+                            using (Stream reqStream = req.GetRequestStream())
+                            {
+                                reqStream.Write(payloadJson, 0, payloadJson.Length);
+                            }
+                        }
+
+                        using (HttpWebResponse res = (HttpWebResponse)req.BetterGetResponse())
+                        {
+
+                            HttpStatusCode statusCode = res.StatusCode;
+                            if (statusCode == HttpStatusCode.OK)
+                            {
+                                using (var stream = new StreamReader(res.GetResponseStream(), Encoding.UTF8))
+                                {
+                                    return stream.ReadToEnd();
+                                }
+                            }
                         }
                     }
+                    catch
+                    {
+                    }
+                    return null;
                 });
         }
 
@@ -211,7 +260,18 @@ namespace Arch.CMessaging.Client.Core.MetaService.Remote
 
         public String GetSchemaString(int schemaId)
         {
-            throw new NotImplementedException();
+            Dictionary<string, string> p = new Dictionary<string, string>();
+            p.Add("id", Convert.ToString(schemaId));
+            String response = Get("/schema/register", p);
+            if (response != null)
+            {
+                return response;
+            }
+            else
+            {
+                log.Warn("No response while getting meta server[getSchemaString]");
+            }
+            return null;
         }
 
     }

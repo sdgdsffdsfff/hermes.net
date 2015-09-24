@@ -4,18 +4,21 @@ using System.Collections.Generic;
 using Arch.CMessaging.Client.Net.Core.Buffer;
 using Arch.CMessaging.Client.Core.Utils;
 using Arch.CMessaging.Client.Net.Core.Session;
+using Arch.CMessaging.Client.Core.Bo;
 
 namespace Arch.CMessaging.Client.Transport.Command
 {
-    public class PullMessageResultCommand : AbstractCommand
+    public class PullMessageResultCommandV2 : AbstractCommand
     {
 
         public List<TppConsumerMessageBatch> Batches { get; set; }
 
+        public Offset Offset { get; set; }
+
         public  IoSession Channel { get; set; }
 
-        public PullMessageResultCommand()
-            : base(CommandType.ResultMessagePull)
+        public PullMessageResultCommandV2()
+            : base(CommandType.ResultMessagePull, 2)
         {
             Batches = new List<TppConsumerMessageBatch>();
         }
@@ -38,6 +41,8 @@ namespace Arch.CMessaging.Client.Transport.Command
             readBatchDatas(buf, codec, batches);
 
             Batches = batches;
+
+            Offset = codec.ReadOffset();
         }
 
         private void readBatchDatas(IoBuffer buf, HermesPrimitiveCodec codec, List<TppConsumerMessageBatch> batches)

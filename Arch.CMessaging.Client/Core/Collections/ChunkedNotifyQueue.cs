@@ -13,7 +13,7 @@ namespace Arch.CMessaging.Client.Core.Collections
     /// <typeparam name="T"></typeparam>
     public class ChunkedNotifyQueue<TItem> : IChunkedBlockingQueue<TItem>
     {
-        private readonly ConcurrentQueue<ItemWrapper<TItem>> queue;
+        private readonly ThreadSafeQueue<TItem> queue;
         private readonly ManualResetEventSlim mre;
         private readonly int capacity;
         private readonly int reachCountToNotify;
@@ -24,7 +24,7 @@ namespace Arch.CMessaging.Client.Core.Collections
             this.capacity = capacity;
             this.reachCountToNotify = reachCountToNotify;
             this.timeoutToNotify = timeoutToNotify;
-            this.queue = new ConcurrentQueue<ItemWrapper<TItem>>();
+            this.queue = new ThreadSafeQueue<TItem>();
             this.mre = new ManualResetEventSlim(false);
         }
 
@@ -40,7 +40,7 @@ namespace Arch.CMessaging.Client.Core.Collections
             var offerOk = false;
             if ((count = Interlocked.Increment(ref currentCount)) <= capacity)
             {
-                queue.Enqueue(new ItemWrapper<TItem> { Value = item });
+                queue.Enqueue(item);
                 if (count >= reachCountToNotify)
                 {
                     if (!mre.IsSet) mre.Set();
@@ -72,11 +72,11 @@ namespace Arch.CMessaging.Client.Core.Collections
             if (items == null) return 0;
             else
             {
-                ItemWrapper<TItem> item = default(ItemWrapper<TItem>);
+                TItem item = default(TItem);
                 var idx = 0;
                 while (idx++ < maxElements && queue.TryDequeue(out item))
                 {
-                    items.Add(item.Value);
+                    items.Add(item);
                     Interlocked.Add(ref currentCount, -1);
                 }
                 return idx;
@@ -100,11 +100,10 @@ namespace Arch.CMessaging.Client.Core.Collections
                     items = new TItem[queueCount > maxCount ? maxCount : queueCount];
                     for (int i = 0; i < items.Length; i++)
                     {
-                        ItemWrapper<TItem> item = default(ItemWrapper<TItem>);
+                        TItem item = default(TItem);
                         if (queue.TryDequeue(out item))
                         {
-                            items[i] = item.Value;
-                            item.Value = default(TItem);
+                            items[i] = item;
                         }
                     }
                     Interlocked.Add(ref currentCount, -items.Length);

@@ -30,7 +30,7 @@ namespace Arch.CMessaging.Client.Core.Message.Retry
                 MatchCollection matches = PATTERN_GROUP.Matches(policyValue.Substring(1, policyValue.Length - 2));
                 foreach (Match m in matches)
                 {
-                    intervals.Add(Convert.ToInt32(m.Groups[1]));
+                    intervals.Add(Convert.ToInt32(m.Groups[1].Value));
                 }
                 retryTimes = intervals.Count;
             }

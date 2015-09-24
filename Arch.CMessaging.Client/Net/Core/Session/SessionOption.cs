@@ -12,7 +12,7 @@ namespace Arch.CMessaging.Client.Net.Core.Session
         public static SessionOption SO_SNDBUF = new SessionOption("SO_SNDBUF");
         public static SessionOption SO_RCVBUF = new SessionOption("SO_RCVBUF");
         public static SessionOption SO_KEEPALIVE = new SessionOption("SO_KEEPALIVE");
-        public static SessionOption BOTH_IDLE_TIME = new SessionOption("BOTH_IDLE_TIME");
+        public static SessionOption ANY_IDLE_TIME = new SessionOption("ANY_IDLE_TIME");
         public static SessionOption CONNECT_TIMEOUT_MILLIS = new SessionOption("CONNECT_TIMEOUT_MILLIS");
 
         public SessionOption(string name)

@@ -10,12 +10,15 @@ namespace Arch.CMessaging.Client.Transport.Command
     public abstract class AbstractCommand : ICommand
     {
         const long serialVersionUID = 1160178108416493829L;
-        protected AbstractCommand(CommandType commandType)
+
+        protected AbstractCommand(CommandType commandType, int version)
         {
             Header = new Header { CommandType = commandType };
+            Header.Version = version;
         }
 
         public Header Header { get; private set; }
+
         protected IoBuffer Buf { get; set; }
 
         public void Parse(IoBuffer buf, Header header)
@@ -41,6 +44,7 @@ namespace Arch.CMessaging.Client.Transport.Command
         }
 
         protected abstract void ToBytes0(IoBuffer buf);
+
         protected abstract void Parse0(IoBuffer buf);
     }
 }

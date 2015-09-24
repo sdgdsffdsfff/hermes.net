@@ -11,16 +11,24 @@ namespace Arch.CMessaging.Client.Transport.Command
     {
         private int totalSize;
         private const long serialVersionUID = -2408812182538982540L;
-        private Dictionary<int, bool> successes;
-        public SendMessageResultCommand() : this(0) { }
-        public SendMessageResultCommand(int totalSize)
-            : base(CommandType.ResultMessageSend)
+        public Dictionary<int, bool> Successes { get; set; }
+
+        public SendMessageResultCommand()
+            : this(0)
         {
-            this.totalSize = totalSize;
-            this.successes = new Dictionary<int, bool>();
         }
 
-        public bool IsAllResultSet() { return successes.Count == totalSize; }
+        public SendMessageResultCommand(int totalSize)
+            : base(CommandType.ResultMessageSend, 1)
+        {
+            this.totalSize = totalSize;
+            this.Successes = new Dictionary<int, bool>();
+        }
+
+        public bool IsAllResultSet()
+        {
+            return Successes.Count == totalSize;
+        }
 
         public void AddResults(Dictionary<int, bool> results)
         {
@@ -28,7 +36,7 @@ namespace Arch.CMessaging.Client.Transport.Command
             {
                 foreach (var kvp in results)
                 {
-                    successes[kvp.Key] = kvp.Value;
+                    Successes[kvp.Key] = kvp.Value;
                 }
             }
         }
@@ -36,7 +44,7 @@ namespace Arch.CMessaging.Client.Transport.Command
         public bool IsSuccess(int messageSeqNo)
         {
             var isSucc = false;
-            successes.TryGetValue(messageSeqNo, out isSucc);
+            Successes.TryGetValue(messageSeqNo, out isSucc);
             return isSucc;
         }
 
@@ -44,14 +52,14 @@ namespace Arch.CMessaging.Client.Transport.Command
         {
             var codec = new HermesPrimitiveCodec(buf);
             codec.WriteInt(totalSize);
-            codec.WriteIntBooleanMap(successes);
+            codec.WriteIntBooleanMap(Successes);
         }
 
         protected override void Parse0(IoBuffer buf)
         {
             var codec = new HermesPrimitiveCodec(buf);
             totalSize = codec.ReadInt();
-            successes = codec.ReadIntBooleanMap();
+            Successes = codec.ReadIntBooleanMap();
         }
     }
 }

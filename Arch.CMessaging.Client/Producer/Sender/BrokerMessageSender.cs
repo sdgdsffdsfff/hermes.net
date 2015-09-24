@@ -40,9 +40,6 @@ namespace Arch.CMessaging.Client.Producer.Sender
         private ProducerConfig config;
 
         [Inject]
-        private IClientEnvironment clientEnv;
-
-        [Inject]
         private ISystemClockService systemClockService;
 
         // copy from AbstractMessageSender cause IoC not support inject in base class [start]
@@ -107,46 +104,42 @@ namespace Arch.CMessaging.Client.Producer.Sender
 
         public ProducerConfig Config { get { return config; } }
 
-        public IClientEnvironment ClientEnv { get { return clientEnv; } }
-
         public ISystemClockService ClockService { get { return systemClockService; } }
 
+        private ThreadSafe.Boolean started = new ThreadSafe.Boolean(false);
 
         protected IFuture<SendResult> DoSend(ProducerMessage message)
         {
+
+            if (started.CompareAndSet(false, true))
+            {
+                StartEndpointSender();
+            }
+
             var tp = new Pair<string, int>(message.Topic, message.Partition);
-            var queueSize = clientEnv.GetGlobalConfig().GetProperty(
-                                "producer.sender.taskqueue.size", config.DefaultBrokerSenderTaskQueueSize);
             TaskQueue task = null;
             if (!taskQueues.TryGetValue(tp, out task))
             {
-                task = new TaskQueue(message.Topic, message.Partition, Convert.ToInt32(queueSize), this);
+                task = new TaskQueue(message.Topic, message.Partition, config.BrokerSenderTaskQueueSize, this);
                 taskQueues.TryAdd(tp, task);
             }
 
             return task.Submit(message);
         }
 
-        public void Resend(ProducerMessage msg, SettableFuture<SendResult> future)
+        private void StartEndpointSender()
         {
-            Pair<string, int> tp = new Pair<String, int>(msg.Topic, msg.Partition);
-            taskQueues[tp].Resubmit(msg, future);
+            int checkIntervalBase = config.BrokerSenderNetworkIoCheckIntervalBaseMillis;
+            int checkIntervalMax = config.BrokerSenderNetworkIoCheckIntervalMaxMillis;
+            SchedulePolicy = new ExponentialSchedulePolicy(checkIntervalBase, checkIntervalMax);
+
+            endpointSenderScheduler = new Timer(new EndpointSender(taskQueues, this).Run, this, checkIntervalBase, Timeout.Infinite);
         }
 
         public void Initialize()
         {
-            int checkIntervalBase = Convert.ToInt32(clientEnv.GetGlobalConfig().GetProperty(
-                                            "producer.networkio.interval.base", config.DefaultBrokerSenderNetworkIoCheckIntervalBaseMillis));
-            int checkIntervalMax = Convert.ToInt32(clientEnv.GetGlobalConfig().GetProperty(
-                                           "producer.networkio.interval.max", config.DefaultBrokerSenderNetworkIoCheckIntervalMaxMillis));
-
-            SchedulePolicy = new ExponentialSchedulePolicy(checkIntervalBase, checkIntervalMax);
-
-            endpointSenderScheduler = new Timer(
-                new EndpointSender(taskQueues, checkIntervalBase, this).Run, 
-                this, checkIntervalBase, Timeout.Infinite);
-            this.callbackExecutor = new ProducerConsumer<FutureCallbackItem<SendResult>>(int.MaxValue,
-                Convert.ToInt32(clientEnv.GetGlobalConfig().GetProperty("producer.callback.threadcount", config.DefaultProducerCallbackThreadCount)));
+            int callbackThreadCount = config.ProducerCallbackThreadCount;
+            this.callbackExecutor = new ProducerConsumer<FutureCallbackItem<SendResult>>(int.MaxValue, callbackThreadCount);
             this.callbackExecutor.OnConsume += callbackExecutor_OnConsume;
         }
 
@@ -199,6 +192,25 @@ namespace Arch.CMessaging.Client.Producer.Sender
                 return cmd.AtomicExchange(null);
             }
 
+            private SendMessageCommand CreateSendMessageCommand(int size)
+            {
+                SendMessageCommand command = null;
+                IList<ProducerWorkerContext> contexts = new List<ProducerWorkerContext>(size);
+                queue.DrainTo(contexts, size);
+                if (contexts.Count > 0)
+                {
+                    command = new SendMessageCommand(topic, partition);
+                    foreach (var context in contexts)
+                        command.AddMessage(context.Message, context.Future);
+                }
+                return command;
+            }
+
+            public bool HasTask()
+            {
+                return cmd.ReadFullFence() != null || queue.Count > 0;
+            }
+
             public IFuture<SendResult> Submit(ProducerMessage message)
             {
                 var future = SettableFuture<SendResult>.Create();
@@ -222,30 +234,6 @@ namespace Arch.CMessaging.Client.Producer.Sender
                     MessageSendException throwable = new MessageSendException(warning);
                     future.SetException(throwable);
                 }
-            }
-
-            public void Resubmit(ProducerMessage msg, SettableFuture<SendResult> future)
-            {
-                Offer(msg, future);
-            }
-
-            public bool HasTask()
-            {
-                return cmd.ReadFullFence() != null || queue.Count > 0;
-            }
-
-            private SendMessageCommand CreateSendMessageCommand(int size)
-            {
-                SendMessageCommand command = null;
-                IList<ProducerWorkerContext> contexts = new List<ProducerWorkerContext>(size);
-                queue.DrainTo(contexts, size);
-                if (contexts.Count > 0)
-                {
-                    command = new SendMessageCommand(topic, partition);
-                    foreach (var context in contexts)
-                        command.AddMessage(context.Message, context.Future);
-                }
-                return command;
             }
         }
 
@@ -275,7 +263,6 @@ namespace Arch.CMessaging.Client.Producer.Sender
 
         private class EndpointSender
         {
-            private int checkInterval;
             private ProducerConsumer<SendTask> producer;
             private BrokerMessageSender sender;
             private ConcurrentDictionary<Pair<string, int>, ThreadSafe.Boolean> runnings;
@@ -283,15 +270,12 @@ namespace Arch.CMessaging.Client.Producer.Sender
             private const int MAX_TASK_EXEC_CAPACITY = int.MaxValue;
 
             public EndpointSender(
-                ConcurrentDictionary<Pair<string, int>, TaskQueue> taskQueues, int checkInterval, BrokerMessageSender sender)
+                ConcurrentDictionary<Pair<string, int>, TaskQueue> taskQueues, BrokerMessageSender sender)
             {
                 this.sender = sender;
                 this.taskQueues = taskQueues;
-                this.checkInterval = checkInterval;
                 this.runnings = new ConcurrentDictionary<Pair<string, int>, ThreadSafe.Boolean>();
-                this.producer = new ProducerConsumer<SendTask>(MAX_TASK_EXEC_CAPACITY, Convert.ToInt32(
-                        sender.ClientEnv.GetGlobalConfig().GetProperty(
-                            "producer.networkio.threadcount", sender.Config.DefaultBrokerSenderNetworkIoThreadCount)));
+                this.producer = new ProducerConsumer<SendTask>(MAX_TASK_EXEC_CAPACITY, sender.config.BrokerSenderNetworkIoThreadCount);
                 this.producer.OnConsume += producer_OnConsume;
             }
 
@@ -304,29 +288,12 @@ namespace Arch.CMessaging.Client.Producer.Sender
             {
                 BrokerMessageSender sender = state as BrokerMessageSender;
                 var endpointSenderScheduler = sender.endpointSenderScheduler;
+
                 bool hasTask = false;
                 try
                 {
                     endpointSenderScheduler.Change(Timeout.Infinite, Timeout.Infinite);
-                    foreach (var kvp in taskQueues)
-                    {
-                        var queue = kvp.Value;
-                        if (queue.HasTask())
-                        {
-                            hasTask = true;
-                            ThreadSafe.Boolean running;
-                            if (!runnings.TryGetValue(kvp.Key, out running))
-                            {
-                                running = new ThreadSafe.Boolean(false);
-                                runnings[kvp.Key] = running;
-                            }
-                            if (running.AtomicCompareExchange(true, false))
-                            {
-                                producer.Produce(new SendTask(
-                                        kvp.Key.Key, kvp.Key.Value, kvp.Value, running, sender));
-                            }
-                        }
-                    }
+                    hasTask = ScanAndExecuteTasks();
                 }
                 catch (Exception ex)
                 {
@@ -334,12 +301,65 @@ namespace Arch.CMessaging.Client.Producer.Sender
                 }
                 finally
                 {
+                    int delay;
                     if (hasTask)
                     {
                         sender.SchedulePolicy.Succeess();
+                        delay = 0;
                     }
-                    endpointSenderScheduler.Change(sender.SchedulePolicy.Fail(false), Timeout.Infinite);
+                    else
+                    {
+                        delay = (int)sender.SchedulePolicy.Fail(false);
+                    }
+                    endpointSenderScheduler.Change(delay, Timeout.Infinite);
                 }
+            }
+
+            private bool ScanAndExecuteTasks()
+            {
+                bool hasTask = false;
+
+                List<KeyValuePair<Pair<string, int>, TaskQueue>> shuffledTaskQueue = new List<KeyValuePair<Pair<string, int>, TaskQueue>>();
+                foreach (var item in taskQueues)
+                {
+                    shuffledTaskQueue.Add(item);
+                }
+                shuffledTaskQueue.Shuffle();
+
+                foreach (KeyValuePair<Pair<string, int>, TaskQueue> pair in shuffledTaskQueue)
+                {
+                    try
+                    {
+                        TaskQueue queue = pair.Value;
+
+                        if (queue.HasTask())
+                        {
+                            hasTask = hasTask || ScheduleTaskExecution(pair.Key, queue);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        // ignore
+                        log.Warn("Exception occurred, ignore it", e);
+                    }
+                }
+
+                return hasTask;
+            }
+
+            private bool ScheduleTaskExecution(Pair<string, int> tp, TaskQueue queue)
+            {
+                runnings.TryAdd(tp, new ThreadSafe.Boolean(false));
+
+                ThreadSafe.Boolean running;
+                runnings.TryGetValue(tp, out running);
+
+                if (running.CompareAndSet(false, true))
+                {
+                    producer.Produce(new SendTask(tp.Key, tp.Value, queue, running, sender));
+                    return true;
+                }
+                return false;
             }
         }
 
@@ -369,27 +389,17 @@ namespace Arch.CMessaging.Client.Producer.Sender
             {
                 try
                 {
-                    var batchSize = Convert.ToInt32(
-                                        sender.ClientEnv.GetGlobalConfig().GetProperty(
-                                            "producer.sender.batchsize", sender.Config.DefaultBrokerSenderBatchSize));
+                    var batchSize = sender.Config.BrokerSenderBatchSize;
 					
                     var command = taskQueue.Pop(batchSize);
 
                     if (command != null)
                     {
-                        if (SendMessagesToBroker(command))
-                        {
-                            command.Accepted(sender.systemClockService.Now());
-                        }
-                        else
+                        if (!SendMessagesToBroker(command))
                         {
                             taskQueue.Push(command);
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    sender.Log.Error(ex);
                 }
                 finally
                 {
@@ -399,27 +409,59 @@ namespace Arch.CMessaging.Client.Producer.Sender
 
             private bool SendMessagesToBroker(SendMessageCommand command)
             {
+                try
+                {
                 var brokerAccepted = false;
+                IFuture<bool> resultFuture = null;
                 var endpoint = sender.EndpointManager.GetEndpoint(topic, partition);
                 if (endpoint != null)
                 {
-                    var future = sender.SendMessageAcceptanceMonitor.Monitor(command.Header.CorrelationId);
-                    sender.SendMessageResultMonitor.Monitor(command);
-                    int timeout = sender.Config.DefaultBrokerSenderSendTimeoutMillis;
+                    var acceptFuture = sender.SendMessageAcceptanceMonitor.Monitor(command.Header.CorrelationId);
+                    resultFuture = sender.SendMessageResultMonitor.Monitor(command);
+                    int timeout = (int)sender.Config.BrokerSenderSendTimeoutMillis;
                     sender.EndpointClient.WriteCommand(endpoint, command, timeout);
                     try
                     {
-                        brokerAccepted = future.Get(timeout);
+                        brokerAccepted = acceptFuture.Get(timeout);
                     }
                     catch (Exception ex)
                     {
-                        sender.Log.Error(ex);
-                        future.Cancel(true);
+                        sender.Log.Warn("Timeout when waiting for produce acceptance from broker, will retry", ex);
+                        sender.SendMessageAcceptanceMonitor.Cancel(command.Header.CorrelationId);
                     }
                 }
                 else
                     sender.Log.Debug("no endpoint found, ignore it");
-                return brokerAccepted;
+
+                if (brokerAccepted)
+                {
+                    return WaitForBrokerResult(command, resultFuture);
+                }
+                else
+                {
+                    return false;
+                }
+                }
+                catch(Exception ex)
+                {
+                    sender.Log.Warn("Exception occurred while sending message to broker, will retry it", ex);
+                    return false;
+                }
+            }
+
+            private bool WaitForBrokerResult(SendMessageCommand cmd, IFuture<bool> resultFuture)
+            {
+                try
+                {
+                    return resultFuture.Get((int)sender.Config.SendMessageReadResultTimeoutMillis);
+                }
+                catch (Exception ex)
+                {
+                    sender.Log.Warn("Timeout when waiting for produce result from broker, will retry", ex);
+                    sender.SendMessageResultMonitor.Cancel(cmd);
+                }
+
+                return false;
             }
         }
 

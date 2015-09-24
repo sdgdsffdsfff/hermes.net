@@ -13,7 +13,7 @@ namespace Arch.CMessaging.Client.Core.Future
         private object val;
         private bool disposed;
         private volatile Boolean ready;
-        private ThreadSafe.AtomicReference<ProducerConsumer<FutureCallbackItem<T>>> executor;
+        private ThreadSafe.AtomicReference<ProducerConsumer<FutureCallbackItem<T>>> executor = new ThreadSafe.AtomicReference<ProducerConsumer<FutureCallbackItem<T>>>(null);
         private IList<IFutureCallback<T>> callbackList = new List<IFutureCallback<T>>();
         private readonly ManualResetEventSlim readyEvent = new ManualResetEventSlim(false);
         private object syncRoot = new object();

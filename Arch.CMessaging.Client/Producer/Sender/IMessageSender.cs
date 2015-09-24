@@ -5,6 +5,7 @@ using System.Text;
 using Arch.CMessaging.Client.Core.Future;
 using Arch.CMessaging.Client.Core.Message;
 using Arch.CMessaging.Client.Core.Result;
+using Arch.CMessaging.Client.Transport.Command;
 
 namespace Arch.CMessaging.Client.Producer.Sender
 {
@@ -12,6 +13,5 @@ namespace Arch.CMessaging.Client.Producer.Sender
     {
         IFuture<SendResult> Send(ProducerMessage message);
 
-        void Resend(ProducerMessage msg, SettableFuture<SendResult> future);
     }
 }

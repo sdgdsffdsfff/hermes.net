@@ -12,6 +12,7 @@ namespace Arch.CMessaging.Client.Core.Collections
         public TimeoutNotifyProducerConsumer(int capacity)
         {
             this.blockingQueue = new TimeoutNotifyQueue<TItem>(capacity);
+            base.StartPolling();
         }
 
         public bool Produce(object key, TItem item, int timeout)

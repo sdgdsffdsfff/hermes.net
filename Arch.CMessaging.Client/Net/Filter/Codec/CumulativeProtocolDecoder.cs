@@ -1,6 +1,7 @@
 ﻿using System;
 using Arch.CMessaging.Client.Net.Core.Buffer;
 using Arch.CMessaging.Client.Net.Core.Session;
+using Arch.CMessaging.Core.Util;
 
 namespace Arch.CMessaging.Client.Net.Filter.Codec
 {
@@ -90,8 +91,12 @@ namespace Arch.CMessaging.Client.Net.Filter.Codec
                 {
                     if (buf.Position == oldPos)
                         throw new InvalidOperationException("DoDecode() can't return true when buffer is not consumed.");
-                    if (!buf.HasRemaining)
-                        break;
+                    if (!buf.HasRemaining) break;
+                    else
+                    {
+                        StoreRemainingInSession(buf, session);
+                        return;
+                    }
                 }
                 else
                 {

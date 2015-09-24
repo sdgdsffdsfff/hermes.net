@@ -34,7 +34,7 @@ namespace Arch.CMessaging.Client.Transport
             var codec = new HermesPrimitiveCodec(buf);
             Magic.ReadAndCheckMagic(buf);
             Version = codec.ReadInt();
-            CommandType = codec.ReadInt().ToCommandType();
+            CommandType = codec.ReadInt().ToCommandType(Version);
             CorrelationId = codec.ReadLong();
             Properties = codec.ReadStringStringMap();
         }

@@ -15,9 +15,9 @@ namespace Arch.CMessaging.Client.Net.Core.Write
 
         public IWriteRequest Poll(IoSession session)
         {
-            IWriteRequest request;
-            q.TryDequeue(out request);
-            return request;
+            IWriteRequest writeRequest = null;
+            q.TryDequeue(out writeRequest);
+            return writeRequest;
         }
 
         public void Offer(IoSession session, IWriteRequest writeRequest)

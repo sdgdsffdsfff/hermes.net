@@ -31,7 +31,7 @@ namespace Arch.CMessaging.Client.Core.Ioc.Extensions.Annotation
                         var interfaces = type.GetInterfaces();
                         if (interfaces.Length != 1)
                         {
-                            throw new ArgumentException("A unique interface is required to be implemented or inherited by the type as the service type not specified, please supply the parameter value explicitly.", "ServiceType");
+                            throw new ArgumentException("As service type not specified, a unique interface is required to be implemented or inherited by the type, or a base class is required to be inherited by the type, please supply the parameter value explicitly.", "ServiceType");
                         }
 
                         serviceType = interfaces[0];

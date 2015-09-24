@@ -8,6 +8,8 @@ using Arch.CMessaging.Client.Core.Message.Retry;
 using Arch.CMessaging.Client.Core.Bo;
 using System.Threading;
 using Arch.CMessaging.Client.Core.Ioc;
+using System.Text.RegularExpressions;
+using System.Text;
 
 namespace Arch.CMessaging.Client.Core.MetaService.Internal
 {
@@ -15,6 +17,8 @@ namespace Arch.CMessaging.Client.Core.MetaService.Internal
     public class DefaultMetaService : IMetaService, IInitializable
     {
         private static readonly ILog log = LogManager.GetLogger(typeof(DefaultMetaService));
+
+        private readonly char[] starAndSharp = new char[] { '*', '#' };
 
         [Inject]
         private IMetaManager manager;
@@ -104,36 +108,60 @@ namespace Arch.CMessaging.Client.Core.MetaService.Internal
 
             topicPattern = topicPattern.Trim();
 
-            bool hasWildcard = topicPattern.EndsWith("*");
-
-            if (hasWildcard)
-            {
-                topicPattern = topicPattern.Substring(0, topicPattern.Length - 1);
-            }
-
             List<Topic> matchedTopics = new List<Topic>();
             foreach (Topic topic in MetaCache.Topics.Values)
             {
-                if (hasWildcard)
+                if (IsTopicMatch(topicPattern, topic.Name))
                 {
-                    if (topic.Name.ToLower().StartsWith(topicPattern.ToLower()))
-                    {
-                        matchedTopics.Add(topic);
-                    }
-                }
-                else
-                {
-                    if (topic.Name.ToLower().Equals(topicPattern.ToLower()))
-                    {
-                        matchedTopics.Add(topic);
-                    }
+                    matchedTopics.Add(topic);
                 }
             }
 
             return matchedTopics;
         }
 
-		
+        public bool IsTopicMatch(string topicPattern, string topic)
+        {
+            var isMatch = false;
+
+            if (topic.Equals(topicPattern, StringComparison.OrdinalIgnoreCase))
+            {
+                isMatch = true;
+            }
+            else
+            {
+                if (topicPattern.IndexOfAny(starAndSharp, 0) >= 0)
+                {
+                    var pattern = BuildMatchPattern(topicPattern);
+                    isMatch = new Regex(pattern, RegexOptions.IgnoreCase).Match(topic).Success;
+                }
+            }
+
+            return isMatch;
+        }
+
+        private string BuildMatchPattern(string topic)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < topic.Length; i++)
+            {
+                if (i == 0)
+                    sb.Append("^");
+
+                if (topic[i] == '*')
+                    sb.Append(@"\w+");
+                else if (topic[i] == '#')
+                    sb.Append(@"(\w\.?)+");
+                else
+                    sb.Append(topic[i]);
+
+                if (i == topic.Length - 1)
+                    sb.Append("$");
+            }
+
+            return sb.ToString();
+        }
+
         public Topic FindTopicByName(String topic)
         {
             return MetaCache.FindTopic(topic);
@@ -162,14 +190,35 @@ namespace Arch.CMessaging.Client.Core.MetaService.Internal
             }
         }
 
-        public void Refresh()
+        public void RefreshMeta()
         {
-            RefreshMeta(manager.LoadMeta());
-        }
+            int maxTries = 10;
+            Exception exception = null;
 
-        private void RefreshMeta(Meta meta)
-        {
-            MetaCache = meta;
+            for (int i = 0; i < maxTries; i++)
+            {
+                try
+                {
+                    Meta meta = manager.LoadMeta();
+                    if (meta != null)
+                    {
+                        MetaCache = meta;
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+
+                Thread.Sleep(1000);
+            }
+
+            if (exception != null)
+            {
+                log.Warn(String.Format("Failed to refresh meta from meta-server for {0} times", maxTries));
+                throw exception;
+            }
         }
 
 		
@@ -226,7 +275,7 @@ namespace Arch.CMessaging.Client.Core.MetaService.Internal
         public void Initialize()
         {
 
-            RefreshMeta(manager.LoadMeta());
+            RefreshMeta();
 
 
             int interval = (int)config.MetaCacheRefreshIntervalSeconds * 1000;
@@ -325,7 +374,7 @@ namespace Arch.CMessaging.Client.Core.MetaService.Internal
                 try
                 {
                     metaService.timer.Change(Timeout.Infinite, Timeout.Infinite);
-                    metaService.Refresh();
+                    metaService.RefreshMeta();
                 }
                 catch (Exception e)
                 {

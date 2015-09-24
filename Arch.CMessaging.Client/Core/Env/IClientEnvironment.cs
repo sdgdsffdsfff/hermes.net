@@ -13,5 +13,6 @@ namespace Arch.CMessaging.Client.Core.Env
         Properties GetProducerConfig(string topic);
         Properties GetConsumerConfig(string topic);
 	    Properties GetGlobalConfig();
+        string getMetaServerDomainName();
     }
 }

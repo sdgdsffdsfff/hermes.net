@@ -14,7 +14,7 @@ using Arch.CMessaging.Client.Core.Exceptions;
 
 namespace Arch.CMessaging.Client.Producer
 {
-    [Named(ServiceType=typeof(Producer))]
+    [Named(ServiceType = typeof(Producer))]
     public class DefaultProducer : Producer
     {
         [Inject(BuildConstants.PRODUCER)]
@@ -25,6 +25,10 @@ namespace Arch.CMessaging.Client.Producer
 
         public override IMessageHolder Message(string topic, string partitionKey, object body)
         {
+            if (String.IsNullOrWhiteSpace(topic))
+            {
+                throw new Exception("Topic can not be null or empty.");
+            }
             return new DefaultMessageHolder(topic, partitionKey, body, pipeline, systemClockService);
         }
 
@@ -66,7 +70,7 @@ namespace Arch.CMessaging.Client.Producer
             public IFuture<SendResult> Send()
             {
 
-				message.BornTime = systemClockService.Now();
+                message.BornTime = systemClockService.Now();
                 return pipeline.Put(message);
             }
 
@@ -92,6 +96,12 @@ namespace Arch.CMessaging.Client.Producer
                 {
                     throw new MessageSendException("send failed", ex);
                 }
+            }
+
+            public IMessageHolder WithoutHeader()
+            {
+                message.WithHeader = false;
+                return this;
             }
 
             #endregion
